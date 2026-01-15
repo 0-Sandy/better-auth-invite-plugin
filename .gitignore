@@ -1,0 +1,10 @@
+node_modules
+.eslintcache
+.env
+.env*.local
+/.project
+.log
+/coverage
+dist
+.DS_Store
+*.tgz
