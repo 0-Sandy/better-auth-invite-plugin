@@ -15,7 +15,7 @@ import {
 	symmetricEncodeJWT,
 } from "better-auth/crypto";
 import { parseUserOutput } from "better-auth/db";
-import type { UserWithRole } from "better-auth/plugins";
+import { createAuthMiddleware, type UserWithRole } from "better-auth/plugins";
 import type * as z from "zod";
 import type { createInviteBodySchema } from "./body";
 import {
@@ -25,6 +25,7 @@ import {
 	type NewInviteOptions,
 	type TokensType,
 } from "./types";
+import { getSessionFromCtx } from "better-auth/api";
 
 export const resolveInviteOptions = (
 	opts: InviteOptions,
@@ -252,6 +253,16 @@ export function redirectCallback(
 
 	return url.href;
 }
+
+// https://github.com/better-auth/better-auth/blob/08ff06d3319dc1472f24844378a9e1f572323b90/packages/better-auth/src/api/routes/session.ts#L501
+
+export const optionalSessionMiddleware = createAuthMiddleware(async (ctx) => {
+	const session = await getSessionFromCtx(ctx);
+
+	return {
+		session,
+	};
+});
 
 // https://github.com/better-auth/better-auth/blob/canary/packages/better-auth/src/cookies/index.ts
 

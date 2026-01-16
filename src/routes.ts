@@ -14,6 +14,7 @@ import {
 	consumeInvite,
 	getCookieName,
 	getDate,
+	optionalSessionMiddleware,
 	redirectCallback,
 	redirectError,
 	redirectToAfterUpgrade,
@@ -170,6 +171,7 @@ export const activateInvite = (options: NewInviteOptions) => {
 		"/invite/activate",
 		{
 			method: "POST",
+			use: [optionalSessionMiddleware],
 			body: z.object({
 				/**
 				 * Where to redirect the user after sing in/up
@@ -223,6 +225,7 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 		"/invite/:token",
 		{
 			method: "GET",
+			use: [optionalSessionMiddleware],
 			query: z.object({
 				/**
 				 * Where to redirect the user after sing in/up
@@ -330,7 +333,6 @@ const activateInviteLogic = async ({
 		);
 	}
 
-	//! ctx.context.session is sometimes undefined
 	const sessionObject = ctx.context.session;
 	const session = sessionObject?.session;
 	const userId = sessionObject?.user.id;

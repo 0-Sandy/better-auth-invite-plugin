@@ -466,8 +466,102 @@ test("getDate should be used if it exists", async ({ createAuth }) => {
 
 // Activate Invite
 
-// Need to fix activateInvite, ctx.context.session can sometimes be undefined
-/*test("uses sendUserInvitation when invited user exists but sendUserRoleUpgrade doesn't exist", async ({
+//! Should check the cookies or the redirect url error query parameter
+/*test("test activateInvite with an invalid token", async ({ createAuth }) => {
+	const { client, db } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+		},
+	});
+	await client.invite.activate({
+		token: "invalid_token",
+		callbackURL: "/",
+	});
+});*/
+
+test("test activateInvite with maxUses set to 2", async ({ createAuth }) => {
+	const { client, testUser, sessionSetter, db } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			canCreateInvite: () => true,
+		},
+	});
+
+	const invitedUser = {
+		email: "test@email.com",
+		role: "user",
+		name: "Test User",
+		password: "12345678",
+	};
+
+	// Create a new user
+	const { id: userId } = await db.create({
+		model: "user",
+		data: invitedUser,
+	});
+	await db.create({
+		model: "account",
+		data: {
+			password: await hashPassword(invitedUser.password),
+			accountId: generateRandomString(16),
+			providerId: "credential",
+			userId,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		},
+	});
+
+	const headers = await signIn(testUser, client, sessionSetter);
+
+	// This should be a role upgrade, because user already exists
+	const token = await client.invite.create({
+		role: "owner",
+		senderResponse: "token",
+		maxUses: 2,
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	const tokenValue = token.data?.message;
+	expect(tokenValue).toBeTruthy();
+
+	const invite = await db.findOne<InviteTypeWithId>({
+		model: "invite",
+		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
+		where: [{ field: "token", value: tokenValue! }],
+	});
+
+	expect(invite).not.toBeNull();
+
+	const inviteId = invite?.id;
+
+	await client.invite.activate({
+		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
+		token: tokenValue!,
+		callbackURL: "/",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	const newInvite = await db.findOne<InviteTypeWithId>({
+		model: "invite",
+		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
+		where: [{ field: "token", value: tokenValue! }],
+	});
+
+	const inviteUses = await db.count({
+		model: "invite_use",
+		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
+		where: [{ field: "inviteId", value: inviteId! }],
+	});
+
+	expect(inviteUses).toBe(1);
+	expect(newInvite).not.toBeNull();
+});
+
+test("invite and invite_uses are deleted after reaching maxUses", async ({
 	createAuth,
 }) => {
 	const { client, testUser, sessionSetter, db } = await createAuth({
@@ -507,6 +601,7 @@ test("getDate should be used if it exists", async ({ createAuth }) => {
 	const token = await client.invite.create({
 		role: "owner",
 		senderResponse: "token",
+		maxUses: 1,
 		fetchOptions: {
 			headers,
 		},
@@ -514,15 +609,6 @@ test("getDate should be used if it exists", async ({ createAuth }) => {
 
 	const tokenValue = token.data?.message;
 	expect(tokenValue).toBeTruthy();
-
-	await client.invite.activate({
-		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
-		token: tokenValue!,
-		callbackURL: "/",
-		fetchOptions: {
-			headers,
-		},
-	});
 
 	const invite = await db.findOne<InviteTypeWithId>({
 		model: "invite",
@@ -534,12 +620,28 @@ test("getDate should be used if it exists", async ({ createAuth }) => {
 
 	const inviteId = invite?.id;
 
+	await client.invite.activate({
+		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
+		token: tokenValue!,
+		callbackURL: "/",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	const newInvite = await db.count({
+		model: "invite",
+		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
+		where: [{ field: "token", value: tokenValue! }],
+	});
+
 	const inviteUses = await db.count({
 		model: "invite_use",
 		// biome-ignore lint/style/noNonNullAssertion: it will NOT be undefined
 		where: [{ field: "inviteId", value: inviteId! }],
 	});
 
-	expect(inviteUses).toBe(1);
+	// They should delete automatically once maxUses is reached
+	expect(inviteUses).toBe(0);
+	expect(newInvite).toBe(0);
 });
-*/
