@@ -514,10 +514,10 @@ export async function setCookieCache(
     };
 
     const options = {
-      ...ctx.context.authCookies.sessionData.options,
+      ...ctx.context.authCookies.sessionData.attributes,
       maxAge: dontRememberMe
         ? undefined
-        : ctx.context.authCookies.sessionData.options.maxAge,
+        : ctx.context.authCookies.sessionData.attributes.maxAge,
     };
 
     const expiresAtDate = getDate(options.maxAge || 60, "sec").getTime();
@@ -606,7 +606,7 @@ export async function setSessionCookie(
   dontRememberMe =
     dontRememberMe !== undefined ? dontRememberMe : !!dontRememberMeCookie;
 
-  const options = ctx.context.authCookies.sessionToken.options;
+  const options = ctx.context.authCookies.sessionToken.attributes;
   const maxAge = dontRememberMe
     ? undefined
     : ctx.context.sessionConfig.expiresIn;
@@ -626,7 +626,7 @@ export async function setSessionCookie(
       ctx.context.authCookies.dontRememberToken.name,
       "true",
       ctx.context.secret,
-      ctx.context.authCookies.dontRememberToken.options
+      ctx.context.authCookies.dontRememberToken.attributes
     );
   }
   await setCookieCache(ctx, session, dontRememberMe);
