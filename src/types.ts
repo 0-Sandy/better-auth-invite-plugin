@@ -6,7 +6,7 @@ export type InviteOptions = {
 	 * The role that users that sign up without a invitation should have
 	 * @example User
 	 */
-	defaultRoleForSignupWithoutInvite: string;
+	defaultRoleForSignUpWithoutInvite: string;
 	/**
 	 * A function to generate the date
 	 * @default () => new Date()
@@ -14,11 +14,11 @@ export type InviteOptions = {
 	getDate?: () => Date;
 	/**
 	 * A function that runs before a user creates an invite
-	 * @param inviteUser The role and optionally email of the user to send the invite
+	 * @param invitedUser The role and optionally email of the user to invited user
 	 * @param inviterUser The full user with role of the user that created the invite
 	 */
 	canCreateInvite?: (
-		inviteUser: {
+		inviteUserd: {
 			email?: string;
 			role: string;
 		},
@@ -188,6 +188,7 @@ export const ERROR_CODES = {
 	INVALID_TOKEN: "Invalid or non-existent token",
 	INVALID_EMAIL: "This token is for a specific email, this is not it",
 	CANT_ACCEPT_INVITE: "You cannot accept this invite",
+	ERROR_SENDING_THE_INVITATION_EMAIL: "Error sending the invitation email"
 } as const;
 
 export type TokensType = "token" | "code" | "custom";

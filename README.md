@@ -55,7 +55,7 @@ yarn add better-auth-invite-plugin
 
 Start by importing `invite` in your `betterAuth` configuration.
 
-**Important:** `defaultRoleForSignupWithoutInvite` from the invite plugin should match `defaultRole` from the admin plugin
+**Important:** `defaultRoleForSignUpWithoutInvite` from the invite plugin should match `defaultRole` from the admin plugin
 
 Basic example:
 
@@ -72,7 +72,7 @@ export const auth = betterAuth({
             defaultRole: "user",
         }),
         invite({
-            defaultRoleForSignupWithoutInvite: "user",
+            defaultRoleForSignUpWithoutInvite: "user",
             defaultMaxUses: 1,
             defaultRedirectToSignUp: "/auth/sign-up",
             defaultRedirectToSignIn: "/auth/sign-in",
@@ -106,9 +106,9 @@ export const auth = betterAuth({
             defaultRole: "user",
         }),
         invite({
-            defaultRoleForSignupWithoutInvite: "user", // The default role for users that signed up without an invite
+            defaultRoleForSignUpWithoutInvite: "user", // The default role for users that signed up without an invite
             getDate: () => new Date(), // Don't know why would you change the getDate function, but you can if you want
-            canCreateInvite: (inviteUser, inviterUser) => { // Can a user create an invite? By default it checks that the inviter role isn't defaultRoleForSignupWithoutInvite
+            canCreateInvite: (inviteUser, inviterUser) => { // Can a user create an invite? By default it checks that the inviter role isn't defaultRoleForSignUpWithoutInvite
                 if (!inviterUser.role) return false;
 
                 const RoleHierarchy = {
@@ -117,7 +117,7 @@ export const auth = betterAuth({
                     owner: 3,
                 } as const;
 
-                return ( // If the inviter isn't trying to invite a user with a higer role than his, he can create the invite
+                return ( // If the inviter isn't trying to invite a user with a higher role than his, he can create the invite
                 RoleHierarchy[inviterUser.role as RoleType] >=
                 RoleHierarchy[inviteUser.role as RoleType]
                 );
@@ -128,7 +128,7 @@ export const auth = betterAuth({
             generateToken: () => { // If you want you can create your own custom tokens
                 return String(Math.floor(Math.random() * 9) + 1); // Totally not ideal, since this only allows 9 different tokens
             }
-            defaultTokenType: "token", // Token is recomended for email invites
+            defaultTokenType: "token", // Token is recommended for email invites
             defaultRedirectToSignUp: "/auth/sign-up", // The url to sign up the user
             defaultRedirectToSignIn: "/auth/sign-in", // The url to sign in the user
             defaultRedirectAfterUpgrade: "/auth/invited", // You should put a welcome message on this page
@@ -148,7 +148,7 @@ export const auth = betterAuth({
                     return void sendWelcomeEmail(user.name, user.email);
                 
                 // If it's not a new account, send them an email telling them their new role
-                void sendRoleUpgraeEmail(user.name, user.email, user.role);
+                void sendRoleUpgradeEmail(user.name, user.email, user.role);
             },
             schema: { // Customize the table and column names
                 invite: {
@@ -176,7 +176,7 @@ export const auth = betterAuth({
 
 | Property | Type | Description | Default |
 | :------- | :--- | :---------- | :------ |
-| `defaultRoleForSignupWithoutInvite` | `string` | The role that users signing up without an invitation should have. | — |
+| `defaultRoleForSignUpWithoutInvite` | `string` | The role that users signing up without an invitation should have. | — |
 | `getDate?` | `() => Date` | Function to generate the date. | `() => new Date()` |
 | `canCreateInvite?` | `(inviteUser: {email?: string; role: string}, inviterUser: UserWithRole) => boolean` | Function that runs before creating an invite. | — |
 | `canAcceptInvite?` | `(data: {user: UserWithRole, newAccount: boolean}) => boolean` | Function that runs before accepting an invite. | — |
@@ -240,7 +240,7 @@ if (error) {
 
 if (data) {
   console.log("Invite token created:", data.token);
-  // Example response: { data: { status: true, message: "test", token: "invite-123" }, error: null }
+  // Example response: { data: { status: true, message: "test" }, error: null }
   return data.token;
 }
 ```
@@ -268,7 +268,7 @@ if (error) {
 
 if (data) {
   console.log("Invite token created:", data.token);
-  // Example response: { data: { status: true, message: "test", token: "invite-123" }, error: null }
+  // Example response: { data: { status: true, message: "test" }, error: null }
   return data.token;
 }
 ```
@@ -281,7 +281,7 @@ if (data) {
 ### 2. Activating Invites
 
 When a user receives an invite code, he needs to activate it.
-If the user recives an email, the link they recive automaticly activates the invite.
+If the user receives an email, the link they receive automatically activates the invite.
 Also you can activate an invite on the client or on the server (manually).
 
 <details>
@@ -327,7 +327,7 @@ import { auth } from "@/lib/auth";
 
 async function activateInvite(token: string) {
     const { data, error } = await auth.api.activateInvite({
-        headers: ..., // The usera headers, req.headers on api, await headers() on NextJS
+        headers: ..., // The user headers, req.headers on api, await headers() on NextJS
         body: { // In the body you put the options
             token,
             callbackURL: "/auth/sign-up" // Where to redirect the user
@@ -351,7 +351,7 @@ async function activateInvite(token: string) {
 </details>
 
 <details>
-<summary>Activating an invite automaticly</summary>
+<summary>Activating an invite automatically</summary>
 
 When you create an invite (see ["Creating Invites"](#creating-invites)) and provide an email.
 
@@ -453,7 +453,7 @@ async function signUpWithoutInvite(email, password, name) {
 
   if (data) {
     console.log(
-      "Sign-up successful. Role should be roleForSignupWithoutInvite:",
+      "Sign-up successful. Role should be roleForSignUpWithoutInvite:",
       data.user
     );
     // data.user contains the new user object with the default role
@@ -477,7 +477,7 @@ Each invite has a token, which is used to validate and track its use:
 
 ### Invite Permissions
 
-- Creating invites: By default, a user cannot create an invite if their role is defaultRoleForSignupWithoutInvite.
+- Creating invites: By default, a user cannot create an invite if their role is defaultRoleForSignUpWithoutInvite.
 - This behavior can be customized using the canCreateInvite function in the invite options.
 
 ### Accepting invites
@@ -572,7 +572,7 @@ Unlike `POST /invite/activate`, this endpoint uses **GET**, and is intended to b
 GET /invite/:token
 ```
 
-<h3 id="activate-invite-options"></h3>
+<h3 id="invite-callback-options"></h3>
 ? = Optional
 
 | Parameter | Type | Description | Default value | Where  |

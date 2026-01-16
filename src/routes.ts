@@ -46,11 +46,7 @@ export const createInvite = (options: NewInviteOptions) => {
 											message: {
 												type: "string",
 											},
-											token: {
-												type: "string",
-											},
 										},
-										required: ["status", "message"],
 									},
 								},
 							},
@@ -125,17 +121,24 @@ export const createInvite = (options: NewInviteOptions) => {
 					});
 				}
 
-				await sendFn(
-					{
-						email,
-						role,
-						url: redirectURLEmail,
-						token,
-					},
-					ctx.request,
-				).catch((e) => {
+				try {
+					await Promise.resolve(
+						sendFn(
+							{
+								email,
+								role,
+								url: redirectURLEmail,
+								token,
+							},
+							ctx.request,
+						),
+					);
+				} catch (e) {
 					ctx.context.logger.error("Error sending the invitation email", e);
-				});
+					throw ctx.error("INTERNAL_SERVER_ERROR", {
+						message: ERROR_CODES.ERROR_SENDING_THE_INVITATION_EMAIL,
+					});
+				}
 
 				return ctx.json({
 					status: true,
@@ -152,8 +155,7 @@ export const createInvite = (options: NewInviteOptions) => {
 
 			return ctx.json({
 				status: true,
-				message: "The invitation token was generated",
-				token: returnToken,
+				message: returnToken,
 			});
 		},
 	);
@@ -185,17 +187,6 @@ export const activateInvite = (options: NewInviteOptions) => {
 					operationId: "activateInvite",
 					description:
 						"Redirects the user to the callback URL with the token in a cookie",
-					parameters: [
-						{
-							name: "token",
-							in: "path",
-							required: true,
-							description: "The invitation token",
-							schema: {
-								type: "string",
-							},
-						},
-					],
 					responses: {
 						"200": {
 							description: "Success",
@@ -251,6 +242,15 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 							in: "path",
 							required: true,
 							description: "The invitation token",
+							schema: {
+								type: "string",
+							},
+						},
+						{
+							name: "callbackURL",
+							in: "query",
+							required: true,
+							description: "Where to redirect the user after sing in/up",
 							schema: {
 								type: "string",
 							},
@@ -330,6 +330,7 @@ const activateInviteLogic = async ({
 		);
 	}
 
+	//! ctx.context.session is sometimes undefined
 	const sessionObject = ctx.context.session;
 	const session = sessionObject?.session;
 	const userId = sessionObject?.user.id;

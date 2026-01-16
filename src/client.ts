@@ -7,3 +7,5 @@ export const inviteClient = () => {
 		$InferServerPlugin: {} as ReturnType<typeof invite>,
 	} satisfies BetterAuthClientPlugin;
 };
+
+export type InviteClientPlugin = ReturnType<typeof inviteClient>;

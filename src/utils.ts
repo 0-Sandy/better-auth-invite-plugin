@@ -64,7 +64,7 @@ export const canUserCreateInvite = (
 		return options.canCreateInvite(invitedUser, inviterUser);
 	}
 
-	return inviterUser.role !== options.defaultRoleForSignupWithoutInvite;
+	return inviterUser.role !== options.defaultRoleForSignUpWithoutInvite;
 };
 
 export const resolveTokenGenerator = (
@@ -169,7 +169,11 @@ export const consumeInvite = async ({
 
 	// After all the logic, we run onInvitationUsed
 	if (options.onInvitationUsed) {
-		await options.onInvitationUsed({ user, newAccount });
+		try {
+			await Promise.resolve(options.onInvitationUsed({ user, newAccount }));
+		} catch (e) {
+			ctx.context.logger.error("Error sending the invitation email", e);
+		}
 	}
 };
 
