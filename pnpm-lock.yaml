@@ -20,7 +20,7 @@ importers:
         version: 24.0.3
       '@types/node':
         specifier: ^25.0.8
-        version: 25.0.8
+        version: 25.0.9
       better-auth:
         specifier: ^1.3.27
         version: 1.4.13
@@ -65,8 +65,8 @@ packages:
   '@tsconfig/node24@24.0.3':
     resolution: {integrity: sha512-vcERKtKQKHgzt/vfS3Gjasd8SUI2a0WZXpgJURdJsMySpS5+ctgbPfuLj2z/W+w4lAfTWxoN4upKfu2WzIRYnw==}
 
-  '@types/node@25.0.8':
-    resolution: {integrity: sha512-powIePYMmC3ibL0UJ2i2s0WIbq6cg6UyVFQxSCpaPxxzAaziRfimGivjdF943sSGV6RADVbk0Nvlm5P/FB44Zg==}
+  '@types/node@25.0.9':
+    resolution: {integrity: sha512-/rpCXHlCWeqClNBwUhDcusJxXYDjZTyE8v5oTO7WbL8eij2nKhUeU89/6xgjU7N4/Vh3He0BtyhJdQbDyhiXAw==}
 
   better-auth@1.4.13:
     resolution: {integrity: sha512-frGQmYT0rglidLpx91SP9n4ztaNBFGBb0JrWSdMTAHvhBkmQlUT/43e0IboMK2mPrAZFlvhdcMV8jCnqpYVE9A==}
@@ -197,7 +197,7 @@ snapshots:
 
   '@tsconfig/node24@24.0.3': {}
 
-  '@types/node@25.0.8':
+  '@types/node@25.0.9':
     dependencies:
       undici-types: 7.16.0
 
