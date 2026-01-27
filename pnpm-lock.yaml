@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@better-auth/utils':
         specifier: ^0.3.0
-        version: 0.3.0
+        version: 0.3.1
       zod:
         specifier: ^4.3.5
         version: 4.3.5
@@ -50,6 +50,9 @@ packages:
 
   '@better-auth/utils@0.3.0':
     resolution: {integrity: sha512-W+Adw6ZA6mgvnSnhOki270rwJ42t4XzSK6YWGF//BbVXL6SwCLWfyzBc1lN2m/4RM28KubdBKQ4X5VMoLRNPQw==}
+
+  '@better-auth/utils@0.3.1':
+    resolution: {integrity: sha512-+CGp4UmZSUrHHnpHhLPYu6cV+wSUSvVbZbNykxhUDocpVNTo9uFFxw/NqJlh1iC4wQ9HKKWGCKuZ5wUgS0v6Kg==}
 
   '@better-fetch/fetch@1.1.21':
     resolution: {integrity: sha512-/ImESw0sskqlVR94jB+5+Pxjf+xBwDZF/N5+y2/q4EqD7IARUTSpPfIo8uf39SYpCxyOCtbyYpUrZ3F/k0zT4A==}
@@ -243,6 +246,8 @@ snapshots:
 
   '@better-auth/utils@0.3.0': {}
 
+  '@better-auth/utils@0.3.1': {}
+
   '@better-fetch/fetch@1.1.21': {}
 
   '@biomejs/biome@2.3.11':
@@ -309,7 +314,7 @@ snapshots:
 
   better-call@1.1.7(zod@4.3.5):
     dependencies:
-      '@better-auth/utils': 0.3.0
+      '@better-auth/utils': 0.3.1
       '@better-fetch/fetch': 1.1.21
       rou3: 0.7.12
       set-cookie-parser: 2.7.2
