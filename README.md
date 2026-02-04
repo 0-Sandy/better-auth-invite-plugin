@@ -60,7 +60,7 @@ Start by importing `invite` in your `betterAuth` configuration.
 Basic example:
 
 ```ts
-import invite from "better-auth-invite-plugin";
+import { invite } from "better-auth-invite-plugin";
 
 export const auth = betterAuth({
     //... other options
@@ -94,7 +94,7 @@ If you want, you can use a lot more options, here's an example using all the opt
 <summary>Advanced example</summary>
 
 ```ts
-import invite from "better-auth-invite-plugin";
+import { invite}  from "better-auth-invite-plugin";
 
 export const auth = betterAuth({
     //... other options

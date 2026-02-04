@@ -1,3 +1,4 @@
+import type { GenericEndpointContext } from "better-auth";
 import type { InferOptionSchema, UserWithRole } from "better-auth/plugins";
 import type { InviteSchema } from "./schema";
 
@@ -85,11 +86,6 @@ export type InviteOptions = {
 	 */
 	defaultSenderResponseRedirect?: "signUp" | "signIn";
 	/**
-	 * Custom cookie prefix.
-	 * @default better-auth
-	 */
-	customCookiePrefix?: string;
-	/**
 	 * Custom cookie name. You can include `{prefix}` in the string.
 	 * @default {prefix}.invite-token
 	 */
@@ -137,11 +133,19 @@ export type InviteOptions = {
 	 */
 	invitationTokenExpiresIn?: number;
 	/**
+	 * Maximum age (in seconds) for the invitation cookie.
+	 * This controls how long users have to complete the login flow
+	 * before activating the token if they are not logged in.
+	 *
+	 * @default 600 (10 minutes)
+	 */
+	inviteCookieMaxAge?: number;
+	/**
 	 * A callback function that is triggered
 	 * when a invite is used.
 	 */
 	onInvitationUsed?: (
-		data: { user: UserWithRole; newAccount: boolean },
+		data: { user: UserWithRole; newUser: UserWithRole; newAccount: boolean },
 		request?: Request,
 	) => Promise<void>;
 	/**
@@ -178,18 +182,11 @@ export type InviteTypeWithId = InviteType & {
 	id: string;
 };
 
-export const ERROR_CODES = {
-	USER_NOT_LOGGED_IN: "User must be logged in to create an invite",
-	INSUFFICIENT_PERMISSIONS:
-		"User does not have sufficient permissions to create invite",
-	NO_SUCH_USER: "No such user",
-	NO_USES_LEFT_FOR_INVITE: "No uses left for this invite",
-	INVALID_OR_EXPIRED_INVITE: "Invalid or expired invite code",
-	INVALID_TOKEN: "Invalid or non-existent token",
-	INVALID_EMAIL: "This token is for a specific email, this is not it",
-	CANT_ACCEPT_INVITE: "You cannot accept this invite",
-	ERROR_SENDING_THE_INVITATION_EMAIL: "Error sending the invitation email"
-} as const;
-
 export type TokensType = "token" | "code" | "custom";
-export const Tokens: TokensType[] = ["token", "code", "custom"];
+
+export type afterUpgradeTypes = {
+	shareInviterName: boolean;
+	ctx: GenericEndpointContext;
+	invite: InviteTypeWithId;
+	signUp: boolean;
+};

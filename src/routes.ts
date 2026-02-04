@@ -1,18 +1,22 @@
-import type { GenericEndpointContext } from "better-auth";
-import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
+import type { GenericEndpointContext, Status, statusCodes } from "better-auth";
+import {
+	createAuthEndpoint,
+	originCheck,
+	sessionMiddleware,
+} from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { createInviteBodySchema } from "./body";
-import {
-	ERROR_CODES,
-	type InviteType,
-	type InviteTypeWithId,
-	type NewInviteOptions,
+import { ERROR_CODES, INVITE_COOKIE_NAME } from "./constants";
+import type {
+	afterUpgradeTypes,
+	InviteType,
+	InviteTypeWithId,
+	NewInviteOptions,
 } from "./types";
 import {
 	canUserCreateInvite,
 	consumeInvite,
-	getCookieName,
 	getDate,
 	optionalSessionMiddleware,
 	redirectCallback,
@@ -171,7 +175,10 @@ export const activateInvite = (options: NewInviteOptions) => {
 		"/invite/activate",
 		{
 			method: "POST",
-			use: [optionalSessionMiddleware],
+			use: [
+				optionalSessionMiddleware,
+				originCheck((ctx) => ctx.body.callbackURL),
+			],
 			body: z.object({
 				/**
 				 * Where to redirect the user after sing in/up
@@ -191,19 +198,47 @@ export const activateInvite = (options: NewInviteOptions) => {
 						"Redirects the user to the callback URL with the token in a cookie",
 					responses: {
 						"200": {
-							description: "Success",
+							description: "Invite activated successfully",
 							content: {
 								"application/json": {
 									schema: {
 										type: "object",
 										properties: {
-											token: {
+											status: { type: "boolean", example: true },
+											message: {
 												type: "string",
+												example: "Invite activated successfully",
 											},
+											action: {
+												type: "string",
+												example: "SIGN_IN_UP_REQUIRED",
+											},
+											redirectTo: {
+												type: "string",
+												example: "/auth/sign-in",
+											},
+										},
+										required: ["status", "message"],
+									},
+								},
+							},
+						},
+						"400": {
+							description: "Invalid or expired invite token",
+							content: {
+								"application/json": {
+									schema: {
+										type: "object",
+										properties: {
+											errorCode: { type: "string", example: "INVALID_TOKEN" },
+											message: { type: "string" },
 										},
 									},
 								},
 							},
+						},
+						"500": {
+							description: "Internal server error",
 						},
 					},
 				},
@@ -212,20 +247,57 @@ export const activateInvite = (options: NewInviteOptions) => {
 		async (ctx) => {
 			const { token, callbackURL } = ctx.body;
 
-			await activateInviteLogic({ ctx, options, token, callbackURL });
+			const error = (
+				httpErrorCode: keyof typeof statusCodes | Status,
+				errorMessage: string,
+				urlErrorCode: string,
+			) =>
+				ctx.error(httpErrorCode, {
+					message: errorMessage,
+					errorCode: urlErrorCode,
+				});
+
+			const afterUpgrade = () =>
+				ctx.json({
+					status: true,
+					message: "Invite activated successfully",
+				});
+
+			const needToSignInUp = () =>
+				ctx.json({
+					status: true,
+					message: "Invite activated successfully",
+					action: "SIGN_IN_UP_REQUIRED",
+					redirectTo: callbackURL,
+				});
+
+			return await activateInviteLogic({
+				ctx,
+				options,
+				token,
+				error,
+				afterUpgrade,
+				needToSignInUp,
+			});
 		},
 	);
 };
 
 /**
  * Only used for invite links
+ *
+ * If an error occurs, the user is redirected to the provided callbackURL
+ * with the query parameters "error" and "message".
  */
 export const activateInviteCallback = (options: NewInviteOptions) => {
 	return createAuthEndpoint(
 		"/invite/:token",
 		{
 			method: "GET",
-			use: [optionalSessionMiddleware],
+			use: [
+				optionalSessionMiddleware,
+				originCheck((ctx) => ctx.query.callbackURL),
+			],
 			query: z.object({
 				/**
 				 * Where to redirect the user after sing in/up
@@ -238,7 +310,7 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 				openapi: {
 					operationId: "activateInviteCallback",
 					description:
-						"Redirects the user to the callback URL with the token in a cookie",
+						"Redirects the user to the callback URL with the token in a cookie. If an error occurs, the user is redirected to the callback URL with the query parameters 'error' and 'message'.",
 					parameters: [
 						{
 							name: "token",
@@ -260,17 +332,14 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 						},
 					],
 					responses: {
-						"200": {
-							description: "Success",
-							content: {
-								"application/json": {
+						"302": {
+							description:
+								"Redirects the user to the callback URL. On error, includes 'error' and 'message' query parameters.",
+							headers: {
+								Location: {
+									description: "Redirect destination",
 									schema: {
-										type: "object",
-										properties: {
-											token: {
-												type: "string",
-											},
-										},
+										type: "string",
 									},
 								},
 							},
@@ -283,7 +352,32 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 			const { token } = ctx.params;
 			const { callbackURL } = ctx.query;
 
-			await activateInviteLogic({ ctx, options, token, callbackURL });
+			const error = (
+				_httpErrorCode: keyof typeof statusCodes | Status,
+				errorMessage: string,
+				urlErrorCode: string,
+			) =>
+				ctx.redirect(
+					redirectError(ctx.context, callbackURL, {
+						error: urlErrorCode,
+						message: errorMessage,
+					}),
+				);
+
+			const afterUpgrade = async (opts: afterUpgradeTypes) =>
+				redirectToAfterUpgrade(opts);
+
+			const needToSignInUp = () =>
+				ctx.redirect(redirectCallback(ctx.context, callbackURL));
+
+			return await activateInviteLogic({
+				ctx,
+				options,
+				token,
+				error,
+				afterUpgrade,
+				needToSignInUp,
+			});
 		},
 	);
 };
@@ -292,28 +386,28 @@ const activateInviteLogic = async ({
 	ctx,
 	options,
 	token,
-	callbackURL,
+	error,
+	afterUpgrade,
+	needToSignInUp,
 }: {
 	ctx: GenericEndpointContext;
 	options: NewInviteOptions;
 	token: string;
-	callbackURL: string;
+	error: (
+		httpErrorCode: keyof typeof statusCodes | Status,
+		errorMessage: string,
+		urlErrorCode: string,
+	) => void;
+	afterUpgrade: (opts: afterUpgradeTypes) => Promise<unknown>;
+	needToSignInUp: () => void;
 }) => {
-	if (!token) {
-		throw ctx.redirect(
-			redirectError(ctx.context, callbackURL, { error: "INVALID_TOKEN" }),
-		);
-	}
-
 	const invite = (await ctx.context.adapter.findOne({
 		model: "invite",
 		where: [{ field: "token", value: token }],
 	})) as InviteTypeWithId | null;
 
 	if (invite === null) {
-		throw ctx.redirect(
-			redirectError(ctx.context, callbackURL, { error: "INVALID_TOKEN" }),
-		);
+		throw error("BAD_REQUEST", "Invalid invite token", "INVALID_TOKEN");
 	}
 
 	const timesUsed = await ctx.context.adapter.count({
@@ -322,47 +416,36 @@ const activateInviteLogic = async ({
 	});
 
 	if (!(timesUsed < invite.maxUses)) {
-		throw ctx.redirect(
-			redirectError(ctx.context, callbackURL, { error: "INVALID_TOKEN" }),
+		throw error(
+			"BAD_REQUEST",
+			"Invite token has already been used",
+			"INVALID_TOKEN",
 		);
 	}
 
 	if (options.getDate() > invite.expiresAt) {
-		throw ctx.redirect(
-			redirectError(ctx.context, callbackURL, { error: "INVALID_TOKEN" }),
-		);
+		throw error("BAD_REQUEST", "Invite token has expired", "INVALID_TOKEN");
 	}
 
 	const sessionObject = ctx.context.session;
 	const session = sessionObject?.session;
-	const userId = sessionObject?.user.id;
-	const user = userId
-		? ((await ctx.context.internalAdapter.findUserById(userId)) as UserWithRole)
-		: undefined;
+	const user = sessionObject?.user as UserWithRole | null;
 
-	if (user) {
-		// Upgrade existing user's role instead of redirecting if user already exists
-		if (!session || !userId) {
-			throw ctx.redirect(
-				redirectError(ctx.context, callbackURL, {
-					error: "INTERNAL_SERVER_ERROR",
-				}),
-			);
-		}
-
+	if (user && session) {
 		await consumeInvite({
 			ctx,
 			invite,
 			user,
 			options,
-			userId,
+			userId: user.id,
 			timesUsed,
 			token,
 			session,
 			newAccount: false,
+			error,
 		});
 
-		await redirectToAfterUpgrade({
+		return await afterUpgrade({
 			shareInviterName: invite.shareInviterName,
 			ctx,
 			invite,
@@ -373,14 +456,18 @@ const activateInviteLogic = async ({
 	// If user doesn't already exist, we set a cookie and redirect them to the sign in/up page
 
 	// Get cookie name (customizable)
-	const cookie = getCookieName({ ctx, options });
-
-	ctx.setCookie(cookie, token, {
-		httpOnly: true,
-		path: "/",
-		expires: invite.expiresAt,
+	const maxAge = options.inviteCookieMaxAge ?? 10 * 60; // 10 minutes
+	const inviteCookie = ctx.context.createAuthCookie(INVITE_COOKIE_NAME, {
+		maxAge,
 	});
 
+	await ctx.setSignedCookie(
+		inviteCookie.name,
+		token,
+		ctx.context.secret,
+		inviteCookie.attributes,
+	);
+
 	// Redirects the user to sign in/up
-	throw ctx.redirect(redirectCallback(ctx.context, callbackURL));
+	return needToSignInUp();
 };

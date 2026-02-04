@@ -7,8 +7,11 @@ import {
 	generateId,
 	type InternalLogger,
 	type Session,
+	type Status,
+	type statusCodes,
 	type User,
 } from "better-auth";
+import { getSessionFromCtx } from "better-auth/api";
 import {
 	generateRandomString,
 	signJWT,
@@ -18,14 +21,13 @@ import { parseUserOutput } from "better-auth/db";
 import { createAuthMiddleware, type UserWithRole } from "better-auth/plugins";
 import type * as z from "zod";
 import type { createInviteBodySchema } from "./body";
-import {
-	ERROR_CODES,
-	type InviteOptions,
-	type InviteTypeWithId,
-	type NewInviteOptions,
-	type TokensType,
+import { ERROR_CODES } from "./constants";
+import type {
+	InviteOptions,
+	InviteTypeWithId,
+	NewInviteOptions,
+	TokensType,
 } from "./types";
-import { getSessionFromCtx } from "better-auth/api";
 
 export const resolveInviteOptions = (
 	opts: InviteOptions,
@@ -95,6 +97,7 @@ export const consumeInvite = async ({
 	token,
 	session,
 	newAccount,
+	error,
 }: {
 	ctx: GenericEndpointContext;
 	invite: InviteTypeWithId;
@@ -105,20 +108,25 @@ export const consumeInvite = async ({
 	token: string;
 	session: Session;
 	newAccount: boolean;
+	error: (
+		httpErrorCode: keyof typeof statusCodes | Status,
+		errorMessage: string,
+		urlErrorCode: string,
+	) => void;
 }) => {
 	if (invite.email && invite.email !== user.email) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.INVALID_EMAIL,
-		});
+		throw error("BAD_REQUEST", ERROR_CODES.INVALID_EMAIL, "INVALID_EMAIL");
 	}
 
 	if (
 		options.canAcceptInvite &&
 		!options.canAcceptInvite({ user, newAccount })
 	) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.CANT_ACCEPT_INVITE,
-		});
+		throw error(
+			"BAD_REQUEST",
+			ERROR_CODES.CANT_ACCEPT_INVITE,
+			"CANT_ACCEPT_INVITE",
+		);
 	}
 
 	await ctx.context.adapter.update({
@@ -171,7 +179,9 @@ export const consumeInvite = async ({
 	// After all the logic, we run onInvitationUsed
 	if (options.onInvitationUsed) {
 		try {
-			await Promise.resolve(options.onInvitationUsed({ user, newAccount }));
+			await Promise.resolve(
+				options.onInvitationUsed({ user, newUser: updatedUser, newAccount }),
+			);
 		} catch (e) {
 			ctx.context.logger.error("Error sending the invitation email", e);
 		}
@@ -201,21 +211,6 @@ export const redirectToAfterUpgrade = async ({
 			...(shareInviterName && { invitedByName }),
 		}),
 	);
-};
-
-export const getCookieName = ({
-	ctx,
-	options,
-}: {
-	ctx: GenericEndpointContext;
-	options: NewInviteOptions;
-}) => {
-	const cookiePrefix =
-		options.customCookiePrefix ??
-		ctx.context.options.advanced?.cookiePrefix ??
-		"better-auth";
-	const cookieName = options.customCookieName ?? "{prefix}.invite-token";
-	return cookieName.replaceAll("{prefix}", cookiePrefix);
 };
 
 export const getDate = (span: number, unit: "sec" | "ms" = "ms") => {

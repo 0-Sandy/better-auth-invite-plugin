@@ -1,13 +1,10 @@
-import type { HookEndpointContext } from "better-auth";
+import type { HookEndpointContext, Status, statusCodes } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
-import {
-	ERROR_CODES,
-	type InviteTypeWithId,
-	type NewInviteOptions,
-} from "./types";
-import { consumeInvite, getCookieName, redirectToAfterUpgrade } from "./utils";
+import { ERROR_CODES, INVITE_COOKIE_NAME } from "./constants";
+import type { InviteTypeWithId, NewInviteOptions } from "./types";
+import { consumeInvite, redirectToAfterUpgrade } from "./utils";
 
 export const invitesHook = (options: NewInviteOptions) => {
 	return {
@@ -43,11 +40,19 @@ export const invitesHook = (options: NewInviteOptions) => {
 			}
 
 			// Get cookie name (customizable)
-			const cookie = getCookieName({ ctx, options });
+			//! const cookie = getCookieName({ ctx, options });
+			const maxAge = options.inviteCookieMaxAge ?? 10 * 60; // 10 minutes
+			const inviteCookie = ctx.context.createAuthCookie(INVITE_COOKIE_NAME, {
+				maxAge,
+			});
 
-			const inviteToken = ctx.getCookie(cookie);
+			// const inviteToken = ctx.getCookie(cookie);
+			const inviteToken = await ctx.getSignedCookie(
+				inviteCookie.name,
+				ctx.context.secret,
+			);
 
-			if (inviteToken === null) {
+			if (!inviteToken) {
 				return;
 			}
 
@@ -86,6 +91,16 @@ export const invitesHook = (options: NewInviteOptions) => {
 				});
 			}
 
+			const error = (
+				httpErrorCode: keyof typeof statusCodes | Status,
+				errorMessage: string,
+				urlErrorCode: string,
+			) =>
+				ctx.error(httpErrorCode, {
+					message: errorMessage,
+					errorCode: urlErrorCode,
+				});
+
 			await consumeInvite({
 				ctx,
 				invite,
@@ -96,11 +111,12 @@ export const invitesHook = (options: NewInviteOptions) => {
 				token: inviteToken,
 				session,
 				newAccount: true,
+				error,
 			});
 
-			ctx.setCookie(cookie, "", {
-				path: "/",
-				httpOnly: true,
+			ctx.setSignedCookie(inviteCookie.name, "", ctx.context.secret, {
+				...inviteCookie.attributes,
+				maxAge: 0,
 				expires: new Date(0), // Set to epoch to clear
 			});
 
