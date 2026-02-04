@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { Tokens } from "./types";
+import { Tokens } from "./constants";
 
 export const createInviteBodySchema = z.object({
 	/**

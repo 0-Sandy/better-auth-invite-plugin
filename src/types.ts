@@ -1,12 +1,8 @@
+import type { GenericEndpointContext } from "better-auth";
 import type { InferOptionSchema, UserWithRole } from "better-auth/plugins";
 import type { InviteSchema } from "./schema";
 
 export type InviteOptions = {
-	/**
-	 * The role that users that sign up without a invitation should have
-	 * @example User
-	 */
-	defaultRoleForSignUpWithoutInvite: string;
 	/**
 	 * A function to generate the date
 	 * @default () => new Date()
@@ -16,22 +12,27 @@ export type InviteOptions = {
 	 * A function that runs before a user creates an invite
 	 * @param invitedUser The role and optionally email of the user to invited user
 	 * @param inviterUser The full user with role of the user that created the invite
+	 *
+	 * @default true
 	 */
-	canCreateInvite?: (
-		inviteUserd: {
-			email?: string;
-			role: string;
-		},
-		inviterUser: UserWithRole,
-	) => boolean;
+	canCreateInvite?:
+		| ((data: {
+				invitedUser: {
+					email?: string;
+					role: string;
+				};
+				inviterUser: UserWithRole;
+		  }) => boolean)
+		| boolean;
 	/**
 	 * A function that runs before a user accepts an invite
 	 * @param user The user object with the role
+	 *
+	 * @default true
 	 */
-	canAcceptInvite?: (data: {
-		user: UserWithRole;
-		newAccount: boolean;
-	}) => boolean;
+	canAcceptInvite?:
+		| ((data: { invitedUser: UserWithRole; newAccount: boolean }) => boolean)
+		| boolean;
 	/**
 	 * A function to generate a custom token
 	 */
@@ -46,12 +47,16 @@ export type InviteOptions = {
 	defaultTokenType?: TokensType;
 	/**
 	 * The default redirect to make the user to sign up
+	 *
+	 * @default /auth/sign-up
 	 */
-	defaultRedirectToSignUp: string;
+	defaultRedirectToSignUp?: string;
 	/**
 	 * The default redirect to make the user to sign up
+	 *
+	 * @default /auth/sign-in
 	 */
-	defaultRedirectToSignIn: string;
+	defaultRedirectToSignIn?: string;
 	/**
 	 * The default redirect after upgrading role (or logging in with an invite)
 	 */
@@ -84,11 +89,6 @@ export type InviteOptions = {
 	 * @default signUp
 	 */
 	defaultSenderResponseRedirect?: "signUp" | "signIn";
-	/**
-	 * Custom cookie prefix.
-	 * @default better-auth
-	 */
-	customCookiePrefix?: string;
 	/**
 	 * Custom cookie name. You can include `{prefix}` in the string.
 	 * @default {prefix}.invite-token
@@ -137,11 +137,23 @@ export type InviteOptions = {
 	 */
 	invitationTokenExpiresIn?: number;
 	/**
+	 * Maximum age (in seconds) for the invitation cookie.
+	 * This controls how long users have to complete the login flow
+	 * before activating the token if they are not logged in.
+	 *
+	 * @default 600 (10 minutes)
+	 */
+	inviteCookieMaxAge?: number;
+	/**
 	 * A callback function that is triggered
 	 * when a invite is used.
 	 */
 	onInvitationUsed?: (
-		data: { user: UserWithRole; newAccount: boolean },
+		data: {
+			invitedUser: UserWithRole;
+			newUser: UserWithRole;
+			newAccount: boolean;
+		},
 		request?: Request,
 	) => Promise<void>;
 	/**
@@ -160,6 +172,8 @@ export type NewInviteOptions = MakeRequired<
 	| "defaultSenderResponse"
 	| "defaultSenderResponseRedirect"
 	| "defaultTokenType"
+	| "defaultRedirectToSignIn"
+	| "defaultRedirectToSignUp"
 >;
 
 export type InviteType = {
@@ -178,18 +192,11 @@ export type InviteTypeWithId = InviteType & {
 	id: string;
 };
 
-export const ERROR_CODES = {
-	USER_NOT_LOGGED_IN: "User must be logged in to create an invite",
-	INSUFFICIENT_PERMISSIONS:
-		"User does not have sufficient permissions to create invite",
-	NO_SUCH_USER: "No such user",
-	NO_USES_LEFT_FOR_INVITE: "No uses left for this invite",
-	INVALID_OR_EXPIRED_INVITE: "Invalid or expired invite code",
-	INVALID_TOKEN: "Invalid or non-existent token",
-	INVALID_EMAIL: "This token is for a specific email, this is not it",
-	CANT_ACCEPT_INVITE: "You cannot accept this invite",
-	ERROR_SENDING_THE_INVITATION_EMAIL: "Error sending the invitation email"
-} as const;
-
 export type TokensType = "token" | "code" | "custom";
-export const Tokens: TokensType[] = ["token", "code", "custom"];
+
+export type afterUpgradeTypes = {
+	shareInviterName: boolean;
+	ctx: GenericEndpointContext;
+	invite: InviteTypeWithId;
+	signUp: boolean;
+};

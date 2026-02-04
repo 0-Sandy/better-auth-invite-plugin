@@ -1,66 +1,50 @@
 
-# 👥 Better Auth Invite Plugin
+# Better Auth Invite Plugin
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![npm](https://img.shields.io/npm/v/better-auth-invite-plugin?logo=npm)](https://www.npmjs.com/package/better-auth-invite-plugin/)
-[![Better Auth Plugin](https://img.shields.io/badge/Better_Auth-Plugin-blue?logo=better-auth)](https://www.better-auth.com/docs/concepts/plugins)
+[![npm beta](https://img.shields.io/npm/v/better-auth-invite-plugin/beta?logo=npm)](https://www.npmjs.com/package/better-auth-invite-plugin/)
+[![Better Auth Plugin](https://img.shields.io/badge/Better_Auth-Plugin-blue?logo=better-auth)](https://www.better-auth.com/docs/concepts/plugins/)
+[![Release](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/release.yml)
 
 A plugin for Better Auth that adds an invitation system, allowing you to create, send, and manage invites for user sign-ups or role upgrades.
 
-## ⚙️ Features
+## Features
 
-- Keep track of who created and who accepted the invite.
-- Create and manage invitation codes to control user sign-ups.
-- Send invitations via email, provide a shareable URL, or generate an invitation code.
-- Automatically assign or upgrade roles when invites are used.
-- Track each invitation's usage and enforce maximum uses.
-- Support multiple token types, including default, code, or custom tokens.
-- Store tokens securely in browser cookies for seamless activation.
-- Fully customize behavior for redirects, token expiration, and email handling.
-- Built with security in mind to prevent unauthorized invite usage.
-- Show the invitee a welcome page or role upgrade page after signing up or upgrading their role.
-## 💾 Installation
+- 👤 Keep track of who created and who accepted the invite.
+- 🧾 Create and manage invitation codes to control user sign-ups.
+- 📩 Send invitations via email, provide a shareable URL, or generate an invitation code.
+- 🛡️ Automatically assign or upgrade roles when invites are used.
+- 📊 Track each invitation's usage and enforce maximum uses.
+- 🧩 Support multiple token types, including default, code, or custom tokens.
+- 🍪 Store tokens securely in browser cookies for seamless activation.
+- ⚙️ Fully customize behavior for redirects, token expiration, and email handling.
+- 🔒 Built with security in mind to prevent unauthorized invite usage.
+- 🎉 Show the invitee a welcome page or role upgrade page after signing up or upgrading their role.
+
+## Installation
 
 Install the plugin
 
-<details>
-<summary>npm</summary>
-
 ```bash
 npm install better-auth-invite-plugin
-```
-
-</details>
-
-<details>
-<summary>pnpm</summary>
-
-```bash
+# or
 pnpm add better-auth-invite-plugin
-```
-
-</details>
-
-<details>
-<summary>yarn</summary>
-
-```bash
+# or
 yarn add better-auth-invite-plugin
 ```
 
-</details>
-
-## 🗄️ Server-Side Setup
+## Server-Side Setup
 
 Start by importing `invite` in your `betterAuth` configuration.
 
-**Important:** `defaultRoleForSignUpWithoutInvite` from the invite plugin should match `defaultRole` from the admin plugin
+**Important:** `defaultRoleForSignUpWithoutInvite` (by default "user") from the invite plugin should match `defaultRole` from the admin plugin
 
 Basic example:
 
 ```ts
-import invite from "better-auth-invite-plugin";
+import { invite } from "better-auth-invite-plugin";
 
 export const auth = betterAuth({
     //... other options
@@ -72,12 +56,9 @@ export const auth = betterAuth({
             defaultRole: "user",
         }),
         invite({
-            defaultRoleForSignUpWithoutInvite: "user",
             defaultMaxUses: 1,
-            defaultRedirectToSignUp: "/auth/sign-up",
-            defaultRedirectToSignIn: "/auth/sign-in",
             defaultRedirectAfterUpgrade: "/auth/invited",
-            sendUserInvitation: async ({ email, role, url }) => {
+            async sendUserInvitation({ email, role, url }) {
                 void sendInvitationEmail(role as RoleType, email, url);
             },
         })
@@ -94,7 +75,7 @@ If you want, you can use a lot more options, here's an example using all the opt
 <summary>Advanced example</summary>
 
 ```ts
-import invite from "better-auth-invite-plugin";
+import { invite}  from "better-auth-invite-plugin";
 
 export const auth = betterAuth({
     //... other options
@@ -106,9 +87,8 @@ export const auth = betterAuth({
             defaultRole: "user",
         }),
         invite({
-            defaultRoleForSignUpWithoutInvite: "user", // The default role for users that signed up without an invite
             getDate: () => new Date(), // Don't know why would you change the getDate function, but you can if you want
-            canCreateInvite: (inviteUser, inviterUser) => { // Can a user create an invite? By default it checks that the inviter role isn't defaultRoleForSignUpWithoutInvite
+            canCreateInvite({ invitedUser, inviterUser }) { // Can a user create an invite? By default he can create an invite, can also be a boolean
                 if (!inviterUser.role) return false;
 
                 const RoleHierarchy = {
@@ -119,13 +99,13 @@ export const auth = betterAuth({
 
                 return ( // If the inviter isn't trying to invite a user with a higher role than his, he can create the invite
                 RoleHierarchy[inviterUser.role as RoleType] >=
-                RoleHierarchy[inviteUser.role as RoleType]
+                RoleHierarchy[invitedUser.role as RoleType]
                 );
             },
-            canAcceptInvite: ({ user, newAccount }) => { // Can a user accept an invite? By default he can accept an invite
+            canAcceptInvite({ invitedUser, newAccount }) { // Can a user accept an invite? By default he can accept an invite, can also be a boolean
                 return newAccount; // Can only accept an invite to create an account, they cannot upgrade their role
             },
-            generateToken: () => { // If you want you can create your own custom tokens
+            generateToken() { // If you want you can create your own custom tokens
                 return String(Math.floor(Math.random() * 9) + 1); // Totally not ideal, since this only allows 9 different tokens
             }
             defaultTokenType: "token", // Token is recommended for email invites
@@ -138,17 +118,17 @@ export const auth = betterAuth({
             defaultSenderResponseRedirect: "signUp", // If no email is provided and defaultSenderResponse is "url", the user will be redirected to the sign-up page when they open that URL
             customCookiePrefix: "my-app", // It defaults to better auth config advanced.cookiePrefix or simply "better-auth"
             customCookieName: "{prefix}_invite", // Change your cookie name, you can use {prefix}, it'll be replaced with customCookiePrefix
-            sendUserInvitation: async ({ email, role, url }) => { // Implement your logic to send an email
+            async sendUserInvitation({ email, role, url }) { // Implement your logic to send an email
                 void sendInvitationEmail(role as RoleType, email, url);
             },
             invitationTokenExpiresIn: 3600, // The token is only valid for 1 hour (in seconds)
-            onInvitationUsed: async ({ user, newAccount }) => {
+            async onInvitationUsed({ invitedUser, newAccount }) {
                 // Send the user an email after they use an invitation
                 if (newAccount) // If it's a new account send them a welcome email
-                    return void sendWelcomeEmail(user.name, user.email);
+                    return void sendWelcomeEmail(invitedUser.name, invitedUser.email);
                 
                 // If it's not a new account, send them an email telling them their new role
-                void sendRoleUpgradeEmail(user.name, user.email, user.role);
+                void sendRoleUpgradeEmail(invitedUser.name, invitedUser.email, invitedUser.role);
             },
             schema: { // Customize the table and column names
                 invite: {
@@ -167,7 +147,7 @@ export const auth = betterAuth({
 
 </details>
 
-## ⚙️ Invite Options
+## Invite Options
 
 <details>
 <summary>Click to expand</summary>
@@ -176,14 +156,13 @@ export const auth = betterAuth({
 
 | Property | Type | Description | Default |
 | :------- | :--- | :---------- | :------ |
-| `defaultRoleForSignUpWithoutInvite` | `string` | The role that users signing up without an invitation should have. | — |
 | `getDate?` | `() => Date` | Function to generate the date. | `() => new Date()` |
-| `canCreateInvite?` | `(inviteUser: {email?: string; role: string}, inviterUser: UserWithRole) => boolean` | Function that runs before creating an invite. | — |
-| `canAcceptInvite?` | `(data: {user: UserWithRole, newAccount: boolean}) => boolean` | Function that runs before accepting an invite. | — |
+| `canCreateInvite?` | `((data: { invitedUser: {email?: string; role: string }}, inviterUser: UserWithRole) => boolean) \| boolean` | Function that runs before creating an invite. | — |
+| `canAcceptInvite?` | `((data: { invitedUser: UserWithRole, newAccount: boolean }) => boolean) \| boolean` | Function that runs before accepting an invite. | — |
 | `generateToken?` | `() => string` | Function to generate a custom token. | — |
 | `defaultTokenType?` | `"token" \| "code" \| "custom"` | Default token type. | `token` |
-| `defaultRedirectToSignUp` | `string` | URL to redirect the user to sign up. | — |
-| `defaultRedirectToSignIn` | `string` | URL to redirect the user to sign in. | — |
+| `defaultRedirectToSignUp` | `string` | URL to redirect the user to sign up. | `/auth/sign-up` |
+| `defaultRedirectToSignIn` | `string` | URL to redirect the user to sign in. | `/auth/sign-in` |
 | `defaultRedirectAfterUpgrade` | `string` | URL to redirect the user after upgrading role. | — |
 | `defaultShareInviterName?` | `boolean` | Whether the inviter's name is shared with the invitee by default. | `true` |
 | `defaultMaxUses` | `number` | Max number of uses for an invite. | `1` |
@@ -191,14 +170,14 @@ export const auth = betterAuth({
 | `defaultSenderResponseRedirect?` | `"signUp" \| "signIn"` | Where to redirect the user if no email is provided. | `signUp` |
 | `customCookiePrefix?` | `string` | Custom cookie prefix. | `better-auth` |
 | `customCookieName?` | `string` | Custom cookie name, `{prefix}` can be used. | `{prefix}.invite-token` |
-| `sendUserInvitation?` | `(data: {email: string; role: string; url: string; token: string}, request?: Request) => Promise<void>` | Function to send the invitation email. | — |
+| `sendUserInvitation?` | `(data: { email: string; role: string; url: string; token: string }, request?: Request) => Promise<void>` | Function to send the invitation email. | — |
 | `invitationTokenExpiresIn?` | `number` | Number of seconds the token is valid for. | `3600` |
-| `onInvitationUsed?` | `(data: { user: UserWithRole, newAccount: boolean}, request?: Request) => Promise<void>` | Callback when an invite is used. | — |
+| `onInvitationUsed?` | `(data: { invitedUser: UserWithRole, newUser: UserWithRole, newAccount: boolean}, request?: Request) => Promise<void>` | Callback when an invite is used. | — |
 | `schema?` | `InferOptionSchema<InviteSchema>` | Custom schema for the invite plugin. | — |
 
 </details>
 
-## 🖥️ Client-Side Setup
+## Client-Side Setup
 
 Import the `inviteClient` plugin and add it to your `betterAuth` configuration.
 
@@ -213,7 +192,7 @@ const client = createClient({
 });
 ```
 
-## 💡 Usage/Examples
+## Usage/Examples
 
 <h3 id="creating-invites"></h3>
 
@@ -463,7 +442,7 @@ async function signUpWithoutInvite(email, password, name) {
 ```
 </details>
 
-## 🔒 Security
+## Security
 
 The invite system provides several built-in mechanisms to ensure secure management of invitations and role upgrades.
 
@@ -502,7 +481,8 @@ Each invite has a token, which is used to validate and track its use:
 - Ensure canCreateInvite is properly configured to prevent users from inviting others to roles above their own.
 - Never expose the token in client-side code or logs.
 - Monitor maxUses and expiresAt to avoid old invites being exploited.
-## 🧩 API Reference
+
+## API Reference
 
 <details>
 <summary>POST /invite/create (Create an invite)</summary>
@@ -598,7 +578,6 @@ GET /invite/:token
 | `expiresAt` | `date` | Timestamp when the invite expires. | — |
 | `maxUses` | `number` | Maximum number of times the invite can be used. | — |
 | `createdByUserId?` | `string` | ID of the user who created the invite. | `user.id` |
-| `callbackURL` | `string` | URL to redirect the user after activating the invite. | — |
 | `redirectToAfterUpgrade` | `string` | URL to redirect the user after their role is upgraded. | — |
 | `shareInviterName` | `boolean` | Whether to share the inviter's name with the invitee. | — |
 | `email?` | `string` | Email of the invited user. Optional if sending a URL directly. | — |

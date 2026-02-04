@@ -7,8 +7,11 @@ import {
 	generateId,
 	type InternalLogger,
 	type Session,
+	type Status,
+	type statusCodes,
 	type User,
 } from "better-auth";
+import { getSessionFromCtx } from "better-auth/api";
 import {
 	generateRandomString,
 	signJWT,
@@ -18,14 +21,13 @@ import { parseUserOutput } from "better-auth/db";
 import { createAuthMiddleware, type UserWithRole } from "better-auth/plugins";
 import type * as z from "zod";
 import type { createInviteBodySchema } from "./body";
-import {
-	ERROR_CODES,
-	type InviteOptions,
-	type InviteTypeWithId,
-	type NewInviteOptions,
-	type TokensType,
+import { ERROR_CODES } from "./constants";
+import type {
+	InviteOptions,
+	InviteTypeWithId,
+	NewInviteOptions,
+	TokensType,
 } from "./types";
-import { getSessionFromCtx } from "better-auth/api";
 
 export const resolveInviteOptions = (
 	opts: InviteOptions,
@@ -36,6 +38,10 @@ export const resolveInviteOptions = (
 	defaultSenderResponse: opts.defaultSenderResponse ?? "token",
 	defaultSenderResponseRedirect: opts.defaultSenderResponseRedirect ?? "signUp",
 	defaultTokenType: opts.defaultTokenType ?? "token",
+	defaultRedirectToSignIn: opts.defaultRedirectToSignIn ?? "/auth/sign-in",
+	defaultRedirectToSignUp: opts.defaultRedirectToSignUp ?? "/auth/sign-up",
+	canCreateInvite: opts.canCreateInvite ?? true,
+	canAcceptInvite: opts.canAcceptInvite ?? true,
 	...opts,
 });
 
@@ -55,18 +61,6 @@ export const resolveInvitePayload = (
 	senderResponseRedirect:
 		body.senderResponseRedirect ?? options.defaultSenderResponseRedirect,
 });
-
-export const canUserCreateInvite = (
-	options: NewInviteOptions,
-	inviterUser: UserWithRole,
-	invitedUser: { email?: string; role: string },
-) => {
-	if (options.canCreateInvite) {
-		return options.canCreateInvite(invitedUser, inviterUser);
-	}
-
-	return inviterUser.role !== options.defaultRoleForSignUpWithoutInvite;
-};
 
 export const resolveTokenGenerator = (
 	tokenType: TokensType,
@@ -88,37 +82,45 @@ export const resolveTokenGenerator = (
 export const consumeInvite = async ({
 	ctx,
 	invite,
-	user,
+	invitedUser,
 	options,
 	userId,
 	timesUsed,
 	token,
 	session,
 	newAccount,
+	error,
 }: {
 	ctx: GenericEndpointContext;
 	invite: InviteTypeWithId;
-	user: UserWithRole;
+	invitedUser: UserWithRole;
 	options: NewInviteOptions;
 	userId: string;
 	timesUsed: number;
 	token: string;
 	session: Session;
 	newAccount: boolean;
+	error: (
+		httpErrorCode: keyof typeof statusCodes | Status,
+		errorMessage: string,
+		urlErrorCode: string,
+	) => void;
 }) => {
-	if (invite.email && invite.email !== user.email) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.INVALID_EMAIL,
-		});
+	if (invite.email && invite.email !== invitedUser.email) {
+		throw error("BAD_REQUEST", ERROR_CODES.INVALID_EMAIL, "INVALID_EMAIL");
 	}
 
-	if (
-		options.canAcceptInvite &&
-		!options.canAcceptInvite({ user, newAccount })
-	) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.CANT_ACCEPT_INVITE,
-		});
+	const canAcceptInvite =
+		typeof options.canAcceptInvite === "function"
+			? options.canAcceptInvite({ invitedUser, newAccount })
+			: options.canAcceptInvite;
+
+	if (!canAcceptInvite) {
+		throw error(
+			"BAD_REQUEST",
+			ERROR_CODES.CANT_ACCEPT_INVITE,
+			"CANT_ACCEPT_INVITE",
+		);
 	}
 
 	await ctx.context.adapter.update({
@@ -130,7 +132,7 @@ export const consumeInvite = async ({
 	});
 
 	const updatedUser = {
-		...user,
+		...invitedUser,
 		role: invite.role,
 	};
 	/**
@@ -171,7 +173,13 @@ export const consumeInvite = async ({
 	// After all the logic, we run onInvitationUsed
 	if (options.onInvitationUsed) {
 		try {
-			await Promise.resolve(options.onInvitationUsed({ user, newAccount }));
+			await Promise.resolve(
+				options.onInvitationUsed({
+					invitedUser,
+					newUser: updatedUser,
+					newAccount,
+				}),
+			);
 		} catch (e) {
 			ctx.context.logger.error("Error sending the invitation email", e);
 		}
@@ -201,21 +209,6 @@ export const redirectToAfterUpgrade = async ({
 			...(shareInviterName && { invitedByName }),
 		}),
 	);
-};
-
-export const getCookieName = ({
-	ctx,
-	options,
-}: {
-	ctx: GenericEndpointContext;
-	options: NewInviteOptions;
-}) => {
-	const cookiePrefix =
-		options.customCookiePrefix ??
-		ctx.context.options.advanced?.cookiePrefix ??
-		"better-auth";
-	const cookieName = options.customCookieName ?? "{prefix}.invite-token";
-	return cookieName.replaceAll("{prefix}", cookiePrefix);
 };
 
 export const getDate = (span: number, unit: "sec" | "ms" = "ms") => {

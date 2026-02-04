@@ -1,13 +1,11 @@
-import type { HookEndpointContext } from "better-auth";
+import type { HookEndpointContext, Status, statusCodes } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
+import { expireCookie } from "better-auth/cookies";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
-import {
-	ERROR_CODES,
-	type InviteTypeWithId,
-	type NewInviteOptions,
-} from "./types";
-import { consumeInvite, getCookieName, redirectToAfterUpgrade } from "./utils";
+import { ERROR_CODES, INVITE_COOKIE_NAME } from "./constants";
+import type { InviteTypeWithId, NewInviteOptions } from "./types";
+import { consumeInvite, redirectToAfterUpgrade } from "./utils";
 
 export const invitesHook = (options: NewInviteOptions) => {
 	return {
@@ -34,20 +32,27 @@ export const invitesHook = (options: NewInviteOptions) => {
 				user: { id: userId },
 			} = validation.data;
 
-			const user = (await ctx.context.internalAdapter.findUserById(
+			const invitedUser = (await ctx.context.internalAdapter.findUserById(
 				userId,
-			)) as UserWithRole;
+			)) as UserWithRole | null;
 
-			if (user === null) {
+			if (invitedUser === null) {
 				return;
 			}
 
 			// Get cookie name (customizable)
-			const cookie = getCookieName({ ctx, options });
+			const maxAge = options.inviteCookieMaxAge ?? 10 * 60; // 10 minutes
+			const inviteCookie = ctx.context.createAuthCookie(INVITE_COOKIE_NAME, {
+				maxAge,
+			});
 
-			const inviteToken = ctx.getCookie(cookie);
+			// const inviteToken = ctx.getCookie(cookie);
+			const inviteToken = await ctx.getSignedCookie(
+				inviteCookie.name,
+				ctx.context.secret,
+			);
 
-			if (inviteToken === null) {
+			if (!inviteToken) {
 				return;
 			}
 
@@ -86,23 +91,31 @@ export const invitesHook = (options: NewInviteOptions) => {
 				});
 			}
 
+			const error = (
+				httpErrorCode: keyof typeof statusCodes | Status,
+				errorMessage: string,
+				urlErrorCode: string,
+			) =>
+				ctx.error(httpErrorCode, {
+					message: errorMessage,
+					errorCode: urlErrorCode,
+				});
+
 			await consumeInvite({
 				ctx,
 				invite,
-				user,
+				invitedUser,
 				options,
 				userId,
 				timesUsed,
 				token: inviteToken,
 				session,
 				newAccount: true,
+				error,
 			});
 
-			ctx.setCookie(cookie, "", {
-				path: "/",
-				httpOnly: true,
-				expires: new Date(0), // Set to epoch to clear
-			});
+			// delete the invite cookie
+			expireCookie(ctx, inviteCookie);
 
 			// return { context: ctx };
 			await redirectToAfterUpgrade({
