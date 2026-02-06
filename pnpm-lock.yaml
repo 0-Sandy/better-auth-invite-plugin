@@ -23,13 +23,13 @@ importers:
         version: 7.6.13
       '@types/node':
         specifier: ^25.0.8
-        version: 25.0.9
+        version: 25.2.1
       '@vitest/coverage-v8':
         specifier: 4.0.17
-        version: 4.0.17(vitest@4.0.17(@types/node@25.0.9))
+        version: 4.0.17(vitest@4.0.17(@types/node@25.2.1))
       better-auth:
         specifier: ^1.3.27
-        version: 1.4.13(better-sqlite3@12.6.2)(react@19.2.3)(vitest@4.0.17(@types/node@25.0.9))
+        version: 1.4.13(better-sqlite3@12.6.2)(react@19.2.3)(vitest@4.0.17(@types/node@25.2.1))
       better-sqlite3:
         specifier: ^12.6.0
         version: 12.6.2
@@ -38,7 +38,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.17
-        version: 4.0.17(@types/node@25.0.9)
+        version: 4.0.17(@types/node@25.2.1)
 
 packages:
 
@@ -451,8 +451,8 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
-  '@types/node@25.0.9':
-    resolution: {integrity: sha512-/rpCXHlCWeqClNBwUhDcusJxXYDjZTyE8v5oTO7WbL8eij2nKhUeU89/6xgjU7N4/Vh3He0BtyhJdQbDyhiXAw==}
+  '@types/node@25.2.1':
+    resolution: {integrity: sha512-CPrnr8voK8vC6eEtyRzvMpgp3VyVRhgclonE7qYi6P9sXwYb59ucfrnmFBTaP0yUi8Gk4yZg/LlTJULGxvTNsg==}
 
   '@vitest/coverage-v8@4.0.17':
     resolution: {integrity: sha512-/6zU2FLGg0jsd+ePZcwHRy3+WpNTBBhDY56P4JTRqUN/Dp6CvOEa9HrikcQ4KfV2b2kAHUFB4dl1SuocWXSFEw==}
@@ -1176,7 +1176,7 @@ snapshots:
 
   '@types/better-sqlite3@7.6.13':
     dependencies:
-      '@types/node': 25.0.9
+      '@types/node': 25.2.1
 
   '@types/chai@5.2.3':
     dependencies:
@@ -1187,11 +1187,11 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
-  '@types/node@25.0.9':
+  '@types/node@25.2.1':
     dependencies:
       undici-types: 7.16.0
 
-  '@vitest/coverage-v8@4.0.17(vitest@4.0.17(@types/node@25.0.9))':
+  '@vitest/coverage-v8@4.0.17(vitest@4.0.17(@types/node@25.2.1))':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.0.17
@@ -1203,7 +1203,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.17(@types/node@25.0.9)
+      vitest: 4.0.17(@types/node@25.2.1)
 
   '@vitest/expect@4.0.17':
     dependencies:
@@ -1214,13 +1214,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.0.17(vite@7.3.1(@types/node@25.0.9))':
+  '@vitest/mocker@4.0.17(vite@7.3.1(@types/node@25.2.1))':
     dependencies:
       '@vitest/spy': 4.0.17
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.1(@types/node@25.0.9)
+      vite: 7.3.1(@types/node@25.2.1)
 
   '@vitest/pretty-format@4.0.17':
     dependencies:
@@ -1254,7 +1254,7 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  better-auth@1.4.13(better-sqlite3@12.6.2)(react@19.2.3)(vitest@4.0.17(@types/node@25.0.9)):
+  better-auth@1.4.13(better-sqlite3@12.6.2)(react@19.2.3)(vitest@4.0.17(@types/node@25.2.1)):
     dependencies:
       '@better-auth/core': 1.4.13(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.7(zod@4.3.5))(jose@6.1.3)(kysely@0.28.9)(nanostores@1.1.0)
       '@better-auth/telemetry': 1.4.13(@better-auth/core@1.4.13(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.7(zod@4.3.5))(jose@6.1.3)(kysely@0.28.9)(nanostores@1.1.0))
@@ -1271,7 +1271,7 @@ snapshots:
     optionalDependencies:
       better-sqlite3: 12.6.2
       react: 19.2.3
-      vitest: 4.0.17(@types/node@25.0.9)
+      vitest: 4.0.17(@types/node@25.2.1)
 
   better-call@1.1.7(zod@4.3.5):
     dependencies:
@@ -1586,7 +1586,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite@7.3.1(@types/node@25.0.9):
+  vite@7.3.1(@types/node@25.2.1):
     dependencies:
       esbuild: 0.27.2
       fdir: 6.5.0(picomatch@4.0.3)
@@ -1595,13 +1595,13 @@ snapshots:
       rollup: 4.55.1
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.0.9
+      '@types/node': 25.2.1
       fsevents: 2.3.3
 
-  vitest@4.0.17(@types/node@25.0.9):
+  vitest@4.0.17(@types/node@25.2.1):
     dependencies:
       '@vitest/expect': 4.0.17
-      '@vitest/mocker': 4.0.17(vite@7.3.1(@types/node@25.0.9))
+      '@vitest/mocker': 4.0.17(vite@7.3.1(@types/node@25.2.1))
       '@vitest/pretty-format': 4.0.17
       '@vitest/runner': 4.0.17
       '@vitest/snapshot': 4.0.17
@@ -1618,10 +1618,10 @@ snapshots:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.3.1(@types/node@25.0.9)
+      vite: 7.3.1(@types/node@25.2.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 25.0.9
+      '@types/node': 25.2.1
     transitivePeerDependencies:
       - jiti
       - less
