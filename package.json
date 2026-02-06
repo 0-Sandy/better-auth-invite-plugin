@@ -29,7 +29,7 @@
 	],
 	"author": "Sandy",
 	"license": "MIT",
-	"packageManager": "pnpm@10.28.0",
+	"packageManager": "pnpm@10.28.2",
 	"exports": {
 		".": {
 			"import": "./dist/index.js",
