@@ -1,0 +1,21 @@
+---
+pre-commit:
+  commands:
+    format:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: pnpm run format --staged
+      stage_fixed: true
+    lint:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: pnpm run lint --staged
+      stage_fixed: true
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: pnpm run typecheck
+    test:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: pnpm run test

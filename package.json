@@ -48,6 +48,7 @@
 		"@vitest/coverage-v8": "4.0.17",
 		"better-auth": "^1.4.13",
 		"better-sqlite3": "^12.6.0",
+		"lefthook": "^2.1.0",
 		"typescript": "^5.9.3",
 		"vitest": "^4.0.17"
 	},
