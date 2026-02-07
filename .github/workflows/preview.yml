@@ -1,4 +1,4 @@
-name: Publish Any Commit
+name: Preview
 on: [pull_request]
 
 concurrency:
@@ -6,8 +6,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  preview:
     runs-on: ubuntu-latest
+    name: Preview
     
     steps:
       - name: Checkout
