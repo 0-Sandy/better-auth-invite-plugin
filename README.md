@@ -6,7 +6,7 @@
 [![npm](https://img.shields.io/npm/v/better-auth-invite-plugin?logo=npm)](https://www.npmjs.com/package/better-auth-invite-plugin/)
 [![npm beta](https://img.shields.io/npm/v/better-auth-invite-plugin/beta?logo=npm)](https://www.npmjs.com/package/better-auth-invite-plugin/)
 [![Better Auth Plugin](https://img.shields.io/badge/Better_Auth-Plugin-blue?logo=better-auth)](https://www.better-auth.com/docs/concepts/plugins/)
-[![Release](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/release.yml)
+[![CI](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/ci.yml)
 
 A plugin for Better Auth that adds an invitation system, allowing you to create, send, and manage invites for user sign-ups or role upgrades.
 
