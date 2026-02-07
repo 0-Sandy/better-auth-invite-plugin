@@ -90,11 +90,6 @@ export type InviteOptions = {
 	 */
 	defaultSenderResponseRedirect?: "signUp" | "signIn";
 	/**
-	 * Custom cookie name. You can include `{prefix}` in the string.
-	 * @default {prefix}.invite-token
-	 */
-	customCookieName?: string;
-	/**
 	 * send user invitation email
 	 */
 	sendUserInvitation?: (
@@ -104,27 +99,34 @@ export type InviteOptions = {
 		 * @param role the role to assign to the invited user
 		 * @param url the URL to send the invitation email to
 		 * @param token the token to send to the user (could be used instead of sending the url
+		 * @param newAccount if true, you should send a user invitation email, else send a role upgrade email
 		 * if you need to redirect the user to custom route)
 		 */
-		data: { email: string; role: string; url: string; token: string },
+		data: {
+			email: string;
+			name?: string;
+			role: string;
+			url: string;
+			token: string;
+			newAccount: boolean;
+		},
 		/**
 		 * The request object
 		 */
 		request?: Request,
 	) => Promise<void>;
 	/**
-	 * send user role upgrade
+	 * send user role upgrade email
+	 *
+	 * @deprecated Use `sendUserInvitation` instead.
 	 */
 	sendUserRoleUpgrade?: (
-		/**
-		 * @param email the email address of the user to send the
-		 * invitation email to
-		 * @param role the role to assign to the invited user
-		 * @param url the URL to send the invitation email to
-		 * @param token the token to send to the user (could be used instead of sending the url
-		 * if you need to redirect the user to custom route)
-		 */
-		data: { email: string; role: string; url: string; token: string },
+		data: {
+			email: string;
+			role: string;
+			url: string;
+			token: string;
+		},
 		/**
 		 * The request object
 		 */

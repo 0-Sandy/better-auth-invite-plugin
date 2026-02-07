@@ -173,6 +173,9 @@ export async function getTestInstance<C extends ClientOptions>(
 		console.log("Database successfully reset.");
 	}
 
+	const ctx = await auth.$context;
+	const logger = ctx.logger;
+
 	return {
 		client: client as unknown as ReturnType<typeof createAuthClient<C>>,
 		testUser,
@@ -184,9 +187,9 @@ export async function getTestInstance<C extends ClientOptions>(
 		resetDatabase,
 		signUpWithTestUser,
 		auth,
+		logger,
 	};
 }
-
 
 // Based in https://github.com/ping-maxwell/better-auth-kit/blob/main/packages/libraries/tests/src/utils/url.ts
 

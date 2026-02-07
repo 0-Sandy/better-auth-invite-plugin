@@ -2,12 +2,64 @@ import { beforeEach, expect, vi } from "vitest";
 import type { InviteTypeWithId } from "../src/types";
 import { defaultOptions, test } from "./helpers/better-auth";
 import mock from "./helpers/mocks";
+import { createUser } from "./helpers/users";
 
 beforeEach(() => {
 	vi.clearAllMocks();
 });
 
 // Activate Invite Tests
+
+test("test warn when using sendUserRoleUpgrade", async ({ createAuth }) => {
+	const { client, db, signInWithTestUser, logger } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			sendUserInvitation: (data, request) =>
+				mock.sendUserInvitation(data, request),
+			sendUserRoleUpgrade: (data, request) =>
+				mock.sendUserRoleUpgrade(data, request),
+		},
+	});
+
+	const warnSpy = vi.spyOn(logger, "warn");
+
+	const invitedUser = {
+		email: "test@email.com",
+		role: "user",
+		name: "Test User",
+		password: "12345678",
+	};
+
+	// Create a new user
+	await createUser(invitedUser, db);
+
+	const { headers } = await signInWithTestUser();
+
+	// This should be a user creation, because that user doesn't exist
+	const { error } = await client.invite.create({
+		role: "user",
+		email: invitedUser.email,
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(error).toBe(null);
+
+	expect(mock.sendUserRoleUpgrade).toHaveBeenCalledOnce();
+	expect(mock.sendUserRoleUpgrade).toHaveBeenCalledWith(
+		expect.objectContaining({
+			email: invitedUser.email,
+			name: invitedUser.name,
+			role: "user",
+		}),
+		expect.anything(),
+	);
+
+	expect(warnSpy).toHaveBeenCalledWith(
+		"`sendUserRoleUpgrade` is deprecated. Use `sendUserInvitation` instead (it now receives `newAccount`).",
+	);
+});
 
 test("uses sendUserInvitation when invited user does not exist", async ({
 	createAuth,
@@ -17,8 +69,6 @@ test("uses sendUserInvitation when invited user does not exist", async ({
 			...defaultOptions,
 			sendUserInvitation: (data, request) =>
 				mock.sendUserInvitation(data, request),
-			sendUserRoleUpgrade: (data, request) =>
-				mock.sendUserRoleUpgrade(data, request),
 		},
 	});
 
@@ -38,11 +88,13 @@ test("uses sendUserInvitation when invited user does not exist", async ({
 	// The sendUserInvitationMock should have been called
 	expect(mock.sendUserInvitation).toHaveBeenCalledOnce();
 	expect(mock.sendUserInvitation).toHaveBeenCalledWith(
-		expect.objectContaining({ email: "test@email.com", role: "user" }),
+		expect.objectContaining({
+			email: "test@email.com",
+			role: "user",
+			newAccount: true,
+		}),
 		expect.anything(),
 	);
-
-	expect(mock.sendUserRoleUpgrade).not.toHaveBeenCalled();
 });
 
 test("uses sendUserRoleUpgrade when invited user exists", async ({
@@ -53,29 +105,25 @@ test("uses sendUserRoleUpgrade when invited user exists", async ({
 			...defaultOptions,
 			sendUserInvitation: (data, request) =>
 				mock.sendUserInvitation(data, request),
-			sendUserRoleUpgrade: (data, request) =>
-				mock.sendUserRoleUpgrade(data, request),
 		},
 	});
 
-	const invitedUserEmail = "test@email.com";
+	const invitedUser = {
+		email: "test@email.com",
+		role: "user",
+		name: "Test User",
+		password: "12345678",
+	};
 
 	// Create a new user
-	await db.create({
-		model: "user",
-		data: {
-			email: invitedUserEmail,
-			name: "Test User",
-			role: "user",
-		},
-	});
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
 	// This should be a role upgrade, because user already exists
 	const { error } = await client.invite.create({
 		role: "user",
-		email: invitedUserEmail,
+		email: invitedUser.email,
 		fetchOptions: {
 			headers,
 		},
@@ -84,62 +132,19 @@ test("uses sendUserRoleUpgrade when invited user exists", async ({
 	expect(error).toBe(null);
 
 	// The sendUserRoleUpgradeMock should have been called
-	expect(mock.sendUserRoleUpgrade).toHaveBeenCalledOnce();
-	expect(mock.sendUserRoleUpgrade).toHaveBeenCalledWith(
-		expect.objectContaining({ email: invitedUserEmail, role: "user" }),
-		expect.anything(),
-	);
-
-	expect(mock.sendUserInvitation).not.toHaveBeenCalled();
-});
-
-test("fallbacks to sendUserInvitation when invited user exists but sendUserRoleUpgrade doesn't exist", async ({
-	createAuth,
-}) => {
-	const { client, db, signInWithTestUser } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-			sendUserInvitation: (data, request) =>
-				mock.sendUserInvitation(data, request),
-		},
-	});
-
-	const invitedUserEmail = "test@email.com";
-
-	// Create a new user
-	await db.create({
-		model: "user",
-		data: {
-			email: invitedUserEmail,
-			name: "Test User",
-			role: "user",
-		},
-	});
-
-	const { headers } = await signInWithTestUser();
-
-	// This should be a role upgrade, because user already exists
-	const { error } = await client.invite.create({
-		role: "user",
-		email: invitedUserEmail,
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(error).toBe(null);
-
-	// The sendUserInvitationMock should have been called as a fallback
 	expect(mock.sendUserInvitation).toHaveBeenCalledOnce();
 	expect(mock.sendUserInvitation).toHaveBeenCalledWith(
-		expect.objectContaining({ email: invitedUserEmail, role: "user" }),
+		expect.objectContaining({
+			email: invitedUser.email,
+			name: invitedUser.name,
+			role: "user",
+			newAccount: false,
+		}),
 		expect.anything(),
 	);
-
-	expect(mock.sendUserRoleUpgrade).not.toHaveBeenCalled();
 });
 
-test("throws error when sendUserInvitation and sendUserRoleUpgrade doesn't exist but an email is present", async ({
+test("throws error when sendUserInvitation doesn't exist but the invite is private", async ({
 	createAuth,
 }) => {
 	const { client, signInWithTestUser } = await createAuth({

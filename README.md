@@ -39,8 +39,6 @@ yarn add better-auth-invite-plugin
 
 Start by importing `invite` in your `betterAuth` configuration.
 
-**Important:** `defaultRoleForSignUpWithoutInvite` (by default "user") from the invite plugin should match `defaultRole` from the admin plugin
-
 Basic example:
 
 ```ts
@@ -78,70 +76,72 @@ If you want, you can use a lot more options, here's an example using all the opt
 import { invite}  from "better-auth-invite-plugin";
 
 export const auth = betterAuth({
-    //... other options
-    database,
-    plugins: {
-        adminPlugin({
-            ac,
-            roles: { user, admin, owner },
-            defaultRole: "user",
-        }),
-        invite({
-            getDate: () => new Date(), // Don't know why would you change the getDate function, but you can if you want
-            canCreateInvite({ invitedUser, inviterUser }) { // Can a user create an invite? By default he can create an invite, can also be a boolean
-                if (!inviterUser.role) return false;
+  //... other options
+  database,
+  plugins: {
+    adminPlugin({
+      ac,
+      roles: { user, admin, owner },
+      defaultRole: "user",
+    }),
+    invite({
+      getDate: () => new Date(), // Don't know why would you change the getDate function, but you can if you want
+      canCreateInvite({ invitedUser, inviterUser }) { // Can a user create an invite? By default he can create an invite, can also be a boolean
+        if (!inviterUser.role) return false;
 
-                const RoleHierarchy = {
-                    user: 1,
-                    admin: 2,
-                    owner: 3,
-                } as const;
+        const RoleHierarchy = {
+          user: 1,
+          admin: 2,
+          owner: 3,
+        } as const;
 
-                return ( // If the inviter isn't trying to invite a user with a higher role than his, he can create the invite
-                RoleHierarchy[inviterUser.role as RoleType] >=
-                RoleHierarchy[invitedUser.role as RoleType]
-                );
-            },
-            canAcceptInvite({ invitedUser, newAccount }) { // Can a user accept an invite? By default he can accept an invite, can also be a boolean
-                return newAccount; // Can only accept an invite to create an account, they cannot upgrade their role
-            },
-            generateToken() { // If you want you can create your own custom tokens
-                return String(Math.floor(Math.random() * 9) + 1); // Totally not ideal, since this only allows 9 different tokens
-            }
-            defaultTokenType: "token", // Token is recommended for email invites
-            defaultRedirectToSignUp: "/auth/sign-up", // The url to sign up the user
-            defaultRedirectToSignIn: "/auth/sign-in", // The url to sign in the user
-            defaultRedirectAfterUpgrade: "/auth/invited", // You should put a welcome message on this page
-            defaultShareInviterName: true, // Will be passed as an argument to the defaultRedirectAfterUpgrade
-            defaultMaxUses: 1,
-            defaultSenderResponse: "url", // If no email is provider, the sender will receive a URL to share with friends!
-            defaultSenderResponseRedirect: "signUp", // If no email is provided and defaultSenderResponse is "url", the user will be redirected to the sign-up page when they open that URL
-            customCookiePrefix: "my-app", // It defaults to better auth config advanced.cookiePrefix or simply "better-auth"
-            customCookieName: "{prefix}_invite", // Change your cookie name, you can use {prefix}, it'll be replaced with customCookiePrefix
-            async sendUserInvitation({ email, role, url }) { // Implement your logic to send an email
-                void sendInvitationEmail(role as RoleType, email, url);
-            },
-            invitationTokenExpiresIn: 3600, // The token is only valid for 1 hour (in seconds)
-            async onInvitationUsed({ invitedUser, newAccount }) {
-                // Send the user an email after they use an invitation
-                if (newAccount) // If it's a new account send them a welcome email
-                    return void sendWelcomeEmail(invitedUser.name, invitedUser.email);
-                
-                // If it's not a new account, send them an email telling them their new role
-                void sendRoleUpgradeEmail(invitedUser.name, invitedUser.email, invitedUser.role);
-            },
-            schema: { // Customize the table and column names
-                invite: {
-                    fields: {
-                        token: "invite_token"
-                    },
-                },
-            },
-        })
-    },
-    emailAndPassword: {
-        enabled: true
-    }
+        return ( // If the inviter isn't trying to invite a user with a higher role than his, he can create the invite
+          RoleHierarchy[inviterUser.role as RoleType] >=
+          RoleHierarchy[invitedUser.role as RoleType]
+        );
+      },
+      canAcceptInvite({ invitedUser, newAccount }) { // Can a user accept an invite? By default he can accept an invite, can also be a boolean
+        return newAccount; // Can only accept an invite to create an account, they cannot upgrade their role
+      },
+      generateToken() { // If you want you can create your own custom tokens
+        return String(Math.floor(Math.random() * 9) + 1); // Totally not ideal, since this only allows 9 different tokens
+      }
+      defaultTokenType: "token", // Token is recommended for email invites
+      defaultRedirectToSignUp: "/auth/sign-up", // The url to sign up the user
+      defaultRedirectToSignIn: "/auth/sign-in", // The url to sign in the user
+      defaultRedirectAfterUpgrade: "/auth/invited", // You should put a welcome message on this page
+      defaultShareInviterName: true, // Will be passed as an argument to the defaultRedirectAfterUpgrade
+      defaultMaxUses: 1,
+      defaultSenderResponse: "url", // If no email is provider, the sender will receive a URL to share with friends!
+      defaultSenderResponseRedirect: "signUp", // If no email is provided and defaultSenderResponse is "url", the user will be redirected to the sign-up page when they open that URL
+      async sendUserInvitation({ email, role, url, newAccount }) { // Implement your logic to send an email
+        if (newAccount)
+          return void sendInvitationEmail(role as RoleType, email, url);
+
+        void sendRoleUpgradeEmail(role as RoleType, email, url);
+      },
+      invitationTokenExpiresIn: 3600, // The token is only valid for 1 hour (in seconds)
+      inviteCookieMaxAge: 600, // The invite cookie will expire in 10 minutes (in seconds)
+      async onInvitationUsed({ invitedUser, newAccount }) {
+        // Send the user an email after they use an invitation
+        if (newAccount) // If it's a new account send them a welcome email
+          return void sendWelcomeEmail(invitedUser.name, invitedUser.email);
+               
+        // If it's not a new account, send them an email telling them their new role
+        void sendRoleUpgradeEmail(invitedUser.name, invitedUser.email, invitedUser.role);
+      },
+      schema: { // Customize the table and column names
+        invite: {
+          fields: {
+            token: "invite_token" // The field "token" is now "invite_token"
+          },
+        },
+      },
+    })
+  },
+  emailAndPassword: {
+    enabled: true
+  }
 });
 ```
 
@@ -168,10 +168,9 @@ export const auth = betterAuth({
 | `defaultMaxUses` | `number` | Max number of uses for an invite. | `1` |
 | `defaultSenderResponse?` | `"token" \| "url"` | How the sender receives the token if no email is provided. | `token` |
 | `defaultSenderResponseRedirect?` | `"signUp" \| "signIn"` | Where to redirect the user if no email is provided. | `signUp` |
-| `customCookiePrefix?` | `string` | Custom cookie prefix. | `better-auth` |
-| `customCookieName?` | `string` | Custom cookie name, `{prefix}` can be used. | `{prefix}.invite-token` |
-| `sendUserInvitation?` | `(data: { email: string; role: string; url: string; token: string }, request?: Request) => Promise<void>` | Function to send the invitation email. | — |
+| `sendUserInvitation?` | `(data: { email: string; role: string; url: string; token: string, newAccount: boolean }, request?: Request) => Promise<void>` | Function to send the invitation email. | — |
 | `invitationTokenExpiresIn?` | `number` | Number of seconds the token is valid for. | `3600` |
+| `inviteCookieMaxAge` | `number` | Number of seconds before the invite cookie expires | `600` |
 | `onInvitationUsed?` | `(data: { invitedUser: UserWithRole, newUser: UserWithRole, newAccount: boolean}, request?: Request) => Promise<void>` | Callback when an invite is used. | — |
 | `schema?` | `InferOptionSchema<InviteSchema>` | Custom schema for the invite plugin. | — |
 
@@ -192,6 +191,11 @@ const client = createClient({
 });
 ```
 
+## Additional Info
+
+An invite is considered `private` when an email is provided when creating an invite. Otherwise, it is considered `public`.
+By default, the invite cookie is named `{your-app-name}.invite-code`, but it can be customized (see ["Custom Cookies"](https://www.better-auth.com/docs/concepts/cookies#custom-cookies)).
+
 ## Usage/Examples
 
 <h3 id="creating-invites"></h3>
@@ -209,18 +213,17 @@ import { client } from "@/lib/auth-client";
 
 const { data, error } = await client.invite.create({
   // Here you put the options
-  role: "admin"
+  role: "admin",
+  senderResponse: "token"
 });
 
 if (error) {
   console.error("Failed to create invite:", error);
-  return;
 }
 
 if (data) {
-  console.log("Invite token created:", data.token);
-  // Example response: { data: { status: true, message: "test" }, error: null }
-  return data.token;
+  // Example response: { status: true, message: "token" }
+  console.log("Invite token created:", data.message);
 }
 ```
 </details>
@@ -228,27 +231,26 @@ if (data) {
 <details>
 <summary>Create an invite on the client</summary>
 
-Use `authClient.invite.create` to create one.
+Use `auth.api.createInvite` to create one.
 
 ```ts
 import { auth } from "@/lib/auth";
 
 const { data, error } = await auth.api.createInvite({
-    headers: ..., // The user headers, req.headers on api, await headers() on NextJS
-    body: { // In the body you put the options
-        role: "admin"
-    }
+  headers: ..., // The user headers, req.headers on api, await headers() on NextJS
+  body: { // In the body you put the options
+    role: "admin",
+    senderResponse: "token"
+  }
 });
 
 if (error) {
   console.error("Failed to create invite:", error);
-  return;
 }
 
 if (data) {
-  console.log("Invite token created:", data.token);
-  // Example response: { data: { status: true, message: "test" }, error: null }
-  return data.token;
+  // Example response: { status: true, message: "token" }
+  console.log("Invite token created:", data.message);
 }
 ```
 </details>
@@ -276,23 +278,19 @@ Use `authClient.invite.activate` to create one.
 ```ts
 import { client } from "@/lib/auth-client";
 
-async function activateInvite(token: string) {
-    const { data, error } = await client.invite.activate({
-        token,
-        callbackURL: "/auth/sign-up" // Where to redirect the user
-    });
+const { data, error } = await client.invite.activate({
+  token,
+  callbackURL: "/auth/sign-up" // Where to redirect the user
+});
 
-    if (error) {
-        console.error("Failed to activate invite:", error);
-        // Handle error (e.g., code invalid, expired, already used)
-        return false;
-    }
-
-    // On successful activation, a cookie named '{your-app-name}.invite-code'
-    // is set in the user's browser. This cookie will be used during sign-up.
-    console.log("Invite activated successfully.");
-    return true;
+if (error) {
+  // Handle error (e.g., code invalid, expired, already used)
+  console.error("Failed to activate invite:", error);
 }
+
+// On successful activation, a cookie named (by default) '{your-app-name}.invite-code'
+// is set in the user's browser. This cookie will be used during sign-up.
+console.log("Invite activated successfully.");
 ```
 </details>
 
@@ -304,26 +302,22 @@ Use `auth.api.activateInvite` to create one.
 ```ts
 import { auth } from "@/lib/auth";
 
-async function activateInvite(token: string) {
-    const { data, error } = await auth.api.activateInvite({
-        headers: ..., // The user headers, req.headers on api, await headers() on NextJS
-        body: { // In the body you put the options
-            token,
-            callbackURL: "/auth/sign-up" // Where to redirect the user
-        }
-    });
+const { data, error } = await auth.api.activateInvite({
+  headers: ..., // The user headers, req.headers on api, await headers() on NextJS
+  body: { // In the body you put the options
+    token,
+    callbackURL: "/auth/sign-up" // Where to redirect the user to sign in/up
+  }
+});
 
-    if (error) {
-        console.error("Failed to activate invite:", error);
-        // Handle error (e.g., code invalid, expired, already used)
-        return false;
-    }
-
-    // On successful activation, a cookie named '{your-app-name}.invite-code'
-    // is set in the user's browser. This cookie will be used during sign-up.
-    console.log("Invite activated successfully.");
-    return true;
+if (error) {
+  // Handle error (e.g., code invalid, expired, already used)
+  console.error("Failed to activate invite:", error);
 }
+
+// On successful activation, a cookie named (by default) '{your-app-name}.invite-code'
+// is set in the user's browser. This cookie will be used during sign-up.
+console.log("Invite activated successfully.");
 ```
 </details>
 
@@ -332,21 +326,7 @@ async function activateInvite(token: string) {
 <details>
 <summary>Activating an invite automatically</summary>
 
-When you create an invite (see ["Creating Invites"](#creating-invites)) and provide an email.
-
-<details>
-<summary>Example</summary>
-
-```ts
-import { client } from "@/lib/auth-client";
-
-const { data, error } = await client.invite.create({
-  email: "test@test.com"
-});
-```
-</details>
-
-An email will be sent to that user. The system checks whether a user with that email already exists:
+When you create a private invite (see ["Creating Invites"](#creating-invites)), an email will be sent to that user. The system checks whether a user with that email already exists:
 
 - If the user does **not** exist, the email invites them to **sign up** and create an account.  
 - If the user **already exists**, the email invites them to **upgrade their role**.  
@@ -371,40 +351,13 @@ The invite system works alongside the standard sign-up and sign-in flow. The out
 
 #### Scenario 1: Using an Active Invite
 
-1. **Activate Invite:** The user activates an invite code (see ["Activating Invites"](#activating-invites)), which sets a `{your-app-name}.invite-code` cookie.
+1. **Activate Invite:** The user activates an invite code (see ["Activating Invites"](#activating-invites)), which sets a invite cookie.
 2. **Sign Up / Sign In:** The user completes the normal sign-up or sign-in process (e.g., using email and password).
-3. **Role Upgrade:** If a valid `{your-app-name}.invite-code` cookie exists:
+3. **Role Upgrade:** If a valid invite cookie exists:
    - The invite is validated.
    - The user's role is upgraded.
    - The invite is marked as used in the database.
-   - The `{your-app-name}.invite-code` cookie is cleared.
-
-<details>
-<summary>Example Code</summary>
-
-```ts
-import { client } from "@/lib/auth-client";
-
-// Using the client with an active invite
-async function signUpWithInvite(email, password, name) {
-  const { data, error } = await client.signUp.email({ email, password, name });
-
-  if (error) {
-    console.error("Sign-up failed:", error);
-    return;
-  }
-
-  if (data) {
-    console.log(
-      "Sign-up successful. Role should now be updated:",
-      data.user
-    );
-    // data.user contains the new user object with the upgraded role
-    // data.token contains the session token
-  }
-}
-```
-</details>
+   - The invite cookie is cleared.
 
 #### Scenario 2: Without an Invite
 
@@ -414,33 +367,6 @@ async function signUpWithInvite(email, password, name) {
    - The invite system does not affect this user.
 
 This approach allows capturing user interest even if invites are limited. Roles can be upgraded later using a valid invite or administrative actions.
-
-<details>
-<summary>Example Code</summary>
-
-```ts
-import { client } from "@/lib/auth-client";
-
-// Using the client without an invite
-async function signUpWithoutInvite(email, password, name) {
-  const { data, error } = await client.signUp.email({ email, password, name });
-
-  if (error) {
-    console.error("Sign-up failed:", error);
-    return;
-  }
-
-  if (data) {
-    console.log(
-      "Sign-up successful. Role should be roleForSignUpWithoutInvite:",
-      data.user
-    );
-    // data.user contains the new user object with the default role
-    // data.token contains the session token
-  }
-}
-```
-</details>
 
 ## Security
 
@@ -456,7 +382,7 @@ Each invite has a token, which is used to validate and track its use:
 
 ### Invite Permissions
 
-- Creating invites: By default, a user cannot create an invite if their role is defaultRoleForSignUpWithoutInvite.
+- Creating invites: By default, a user can create an invite.
 - This behavior can be customized using the canCreateInvite function in the invite options.
 
 ### Accepting invites
@@ -471,7 +397,6 @@ Each invite has a token, which is used to validate and track its use:
 
 ### Secure Delivery
 
-- When sending invites via email, the system uses configured functions (sendUserInvitation or sendUserRoleUpgrade) to securely deliver the token or link.
 - Invites that were send to a certain email can only be used by that exact email.
 - The token is stored in an HTTP-only cookie when the invite is activated, protecting it from client-side access.
 

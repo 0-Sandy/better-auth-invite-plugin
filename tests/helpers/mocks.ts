@@ -4,6 +4,9 @@ const test_token = "test_token";
 const test_date = new Date("2025-01-01T10:00:00Z");
 
 const sendUserInvitation = vi.fn();
+/**
+ * @deprecated
+ */
 const sendUserRoleUpgrade = vi.fn();
 const sendUserInvitationWithError = vi.fn().mockImplementation(() => {
 	throw new Error("Test Error");

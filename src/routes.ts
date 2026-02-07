@@ -83,7 +83,7 @@ export const createInvite = (options: NewInviteOptions) => {
 				!options.sendUserRoleUpgrade
 			) {
 				ctx.context.logger.warn(
-					"Invitation email is not enabled. Pass `sendUserInvitation` or `sendUserRoleUpgrade` to the plugin options to enable it.",
+					"Invitation email is not enabled. Pass `sendUserInvitation` to the plugin options to enable it.",
 				);
 				throw ctx.error("INTERNAL_SERVER_ERROR", {
 					message: "Invitation email is not enabled",
@@ -109,10 +109,12 @@ export const createInvite = (options: NewInviteOptions) => {
 			const generateToken = resolveTokenGenerator(tokenType, options);
 
 			const invitedUser =
-				email &&
-				(await ctx.context.internalAdapter.findUserByEmail(email, {
-					includeAccounts: true,
-				}));
+				inviteType === "private"
+					? // biome-ignore lint/style/noNonNullAssertion: email is defined if the invite is private
+						await ctx.context.internalAdapter.findUserByEmail(email!, {
+							includeAccounts: true,
+						})
+					: null;
 
 			// If the user already exists they should sign in, else they should sign up
 			const callbackURL = invitedUser ? redirectToSignIn : redirectToSignUp;
@@ -136,13 +138,21 @@ export const createInvite = (options: NewInviteOptions) => {
 			});
 
 			const url = `${ctx.context.baseURL}/invite/${token}`;
-			const redirectURLEmail = `${url}?callbackURL=${callbackURL}?`;
+			const redirectURLEmail = `${url}?callbackURL=${encodeURIComponent(callbackURL)}`;
 
 			// If the invite is private, send the invitation or role upgrade using the configured function
 			if (inviteType === "private") {
-				const sendFn = invitedUser
-					? (options.sendUserRoleUpgrade ?? options.sendUserInvitation) // fallback if it doesn't exist
-					: (options.sendUserInvitation ?? options.sendUserRoleUpgrade); // fallback if it doesn't exist
+				const newAccount = !invitedUser;
+
+				if (!newAccount && options.sendUserRoleUpgrade) {
+					ctx.context.logger.warn(
+						"`sendUserRoleUpgrade` is deprecated. Use `sendUserInvitation` instead (it now receives `newAccount`).",
+					);
+				}
+
+				const sendFn = newAccount
+					? options.sendUserInvitation
+					: (options.sendUserRoleUpgrade ?? options.sendUserInvitation);
 
 				if (!sendFn) {
 					throw ctx.error("INTERNAL_SERVER_ERROR", {
@@ -156,9 +166,11 @@ export const createInvite = (options: NewInviteOptions) => {
 							{
 								// biome-ignore lint/style/noNonNullAssertion: email is guaranteed to exist for private invites
 								email: email!,
+								name: invitedUser?.user.name,
 								role,
 								url: redirectURLEmail,
 								token,
+								newAccount,
 							},
 							ctx.request,
 						),
