@@ -76,6 +76,8 @@ export const createInvite = (options: NewInviteOptions) => {
 			} = resolveInvitePayload(ctx.body, options);
 
 			const inviteType = email ? "private" : "public";
+			console.log("TEST!!!");
+			console.log("inviteType: ", inviteType);
 
 			if (
 				inviteType === "private" &&
