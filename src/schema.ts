@@ -17,7 +17,7 @@ export const schema = {
 			role: { type: "string", required: true },
 		},
 	},
-	invite_use: {
+	inviteUse: {
 		fields: {
 			inviteId: {
 				type: "string",

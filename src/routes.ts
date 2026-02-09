@@ -438,6 +438,8 @@ const activateInviteLogic = async ({
 	afterUpgrade: (opts: afterUpgradeTypes) => Promise<unknown>;
 	needToSignInUp: () => void;
 }) => {
+	const inviteUseTable = "inviteUse";
+
 	const invite = (await ctx.context.adapter.findOne({
 		model: "invite",
 		where: [{ field: "token", value: token }],
@@ -448,7 +450,7 @@ const activateInviteLogic = async ({
 	}
 
 	const timesUsed = await ctx.context.adapter.count({
-		model: "invite_use",
+		model: inviteUseTable,
 		where: [{ field: "inviteId", value: invite.id }],
 	});
 

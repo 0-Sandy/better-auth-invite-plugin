@@ -32,6 +32,8 @@ export const invitesHook = (options: NewInviteOptions) => {
 				user: { id: userId },
 			} = validation.data;
 
+			const inviteUseTable = "inviteUse";
+
 			const invitedUser = (await ctx.context.internalAdapter.findUserById(
 				userId,
 			)) as UserWithRole | null;
@@ -72,7 +74,7 @@ export const invitesHook = (options: NewInviteOptions) => {
 			}
 
 			const timesUsed = await ctx.context.adapter.count({
-				model: "invite_use",
+				model: inviteUseTable,
 				where: [{ field: "inviteId", value: invite.id }],
 			});
 

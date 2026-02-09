@@ -88,7 +88,7 @@ test("test activateInviteCallback with maxUses set to 2", async ({
 	});
 
 	const inviteUses = await db.count({
-		model: "invite_use",
+		model: "inviteUse",
 		where: [{ field: "inviteId", value: inviteId }],
 	});
 
@@ -97,7 +97,7 @@ test("test activateInviteCallback with maxUses set to 2", async ({
 	expect(newInvite).not.toBeNull();
 });
 
-test("invite and invite_uses are deleted after reaching maxUses", async ({
+test("invite and inviteUses are deleted after reaching maxUses", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser } = await createAuth({
@@ -156,7 +156,7 @@ test("invite and invite_uses are deleted after reaching maxUses", async ({
 	});
 
 	const inviteUses = await db.count({
-		model: "invite_use",
+		model: "inviteUse",
 		where: [{ field: "inviteId", value: inviteId }],
 	});
 
@@ -434,4 +434,79 @@ test("throws error when using different email than invite email", async ({
 		error: "INVALID_EMAIL",
 		message: "This token is for a specific email, this is not it",
 	});
+});
+
+test("test activateInviteCallback with custom schema", async ({
+	createAuth,
+}) => {
+	const { client, db, signInWithTestUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			schema: {
+				inviteUse: {
+					modelName: "customInvite-use",
+				},
+				invite: {
+					modelName: "custom-invite",
+				},
+			},
+		},
+	});
+
+	const { headers } = await signInWithTestUser();
+
+	// This should be a role upgrade, because user already exists
+	const token = await client.invite.create({
+		role: "owner",
+		senderResponse: "token",
+		maxUses: 2,
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(token.error).toBe(null);
+
+	const tokenValue = token.data?.message;
+	if (!tokenValue) {
+		throw new Error("Token value is undefined");
+	}
+
+	const invite = await db.findOne<InviteTypeWithId>({
+		model: "invite",
+		where: [{ field: "token", value: tokenValue }],
+	});
+
+	if (!invite) {
+		throw new Error("Invite not found");
+	}
+
+	const inviteId = invite.id;
+
+	const { newError, path } = await activateInviteGet(client, {
+		token: tokenValue,
+		callbackURL: "/auth/sign-in",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(newError).toBe(null);
+
+	// We should be redirected to the invited page since we used the invitation successfully
+	expect(path).toBe("http://localhost:3000/auth/invited");
+
+	const newInvite = await db.findOne<InviteTypeWithId>({
+		model: "custom-invite",
+		where: [{ field: "token", value: tokenValue }],
+	});
+
+	const inviteUses = await db.count({
+		model: "customInvite-use",
+		where: [{ field: "inviteId", value: inviteId }],
+	});
+
+	// It should still exist because maxUses is 2
+	expect(inviteUses).toBe(1);
+	expect(newInvite).not.toBeNull();
 });

@@ -25,6 +25,8 @@ A plugin for Better Auth that adds an invitation system, allowing you to create,
 
 ## Installation
 
+> ⚠️ **Requires Better Auth v1.4.13 or newer**
+
 Install the plugin
 
 ```bash
@@ -514,7 +516,7 @@ GET /invite/:token
 
 ? = optional
 
-### `invite_use` table
+### `inviteUse` table
 
 | Column | Type | Description | References |
 |--------|------|-------------|------------|
@@ -522,6 +524,25 @@ GET /invite/:token
 | `usedAt` | `date` | Timestamp when the invite was used. | — |
 | `usedByUserId?` | `string` | ID of the user who used the invite. | `user.id` |
 </details>
+
+## Troubleshooting
+
+### `Export expireCookie doesn't exist in target module`
+
+If you see an error like:
+
+```txt
+./node_modules/.pnpm/better-auth-invite-plugin@.../dist/hooks.js:2:1
+Export expireCookie doesn't exist in target module
+  1 | import { createAuthMiddleware } from "better-auth/api";
+> 2 | import { expireCookie } from "better-auth/cookies";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+The export expireCookie was not found in module .../better-auth/dist/cookies/index.mjs
+```
+This means your better-auth version is too old.
+
+**Fix**: upgrade Better Auth to v1.4.13 or newer
 
 ## Acknowledgements
 

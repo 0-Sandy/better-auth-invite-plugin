@@ -93,7 +93,7 @@ test("test activateInvite with maxUses set to 2", async ({ createAuth }) => {
 	});
 
 	const inviteUses = await db.count({
-		model: "invite_use",
+		model: "inviteUse",
 		where: [{ field: "inviteId", value: inviteId }],
 	});
 
@@ -102,7 +102,7 @@ test("test activateInvite with maxUses set to 2", async ({ createAuth }) => {
 	expect(newInvite).not.toBeNull();
 });
 
-test("invite and invite_uses are deleted after reaching maxUses", async ({
+test("invite and inviteUses are deleted after reaching maxUses", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser } = await createAuth({
@@ -162,7 +162,7 @@ test("invite and invite_uses are deleted after reaching maxUses", async ({
 	});
 
 	const inviteUses = await db.count({
-		model: "invite_use",
+		model: "inviteUse",
 		where: [{ field: "inviteId", value: inviteId }],
 	});
 
@@ -534,4 +534,78 @@ test("throws error when using different email than invite email", async ({
 		status: 400,
 		statusText: "BAD_REQUEST",
 	});
+});
+
+test("test activateInvite with custom schema", async ({ createAuth }) => {
+	const { client, db, signInWithTestUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			schema: {
+				inviteUse: {
+					modelName: "customInvite-use",
+				},
+				invite: {
+					modelName: "custom-invite",
+				},
+			},
+		},
+	});
+
+	const { headers } = await signInWithTestUser();
+
+	// This should be a role upgrade, because user already exists
+	const token = await client.invite.create({
+		role: "owner",
+		senderResponse: "token",
+		maxUses: 2,
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(token.error).toBe(null);
+
+	const tokenValue = token.data?.message;
+	if (!tokenValue) {
+		throw new Error("Token value is undefined");
+	}
+
+	const invite = await db.findOne<InviteTypeWithId>({
+		model: "invite",
+		where: [{ field: "token", value: tokenValue }],
+	});
+
+	if (!invite) {
+		throw new Error("Invite not found");
+	}
+
+	const inviteId = invite.id;
+
+	const { error, data } = await client.invite.activate({
+		token: tokenValue,
+		callbackURL: "/auth/sign-in",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(error).toBe(null);
+	expect(data).toStrictEqual({
+		status: true,
+		message: "Invite activated successfully",
+	});
+
+	const newInvite = await db.findOne<InviteTypeWithId>({
+		model: "custom-invite",
+		where: [{ field: "token", value: tokenValue }],
+	});
+
+	const inviteUses = await db.count({
+		model: "customInvite-use",
+		where: [{ field: "inviteId", value: inviteId }],
+	});
+
+	// It should still exist because maxUses is 2
+	expect(inviteUses).toBe(1);
+	expect(newInvite).not.toBeNull();
 });

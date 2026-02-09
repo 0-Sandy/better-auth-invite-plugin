@@ -106,6 +106,8 @@ export const consumeInvite = async ({
 		urlErrorCode: string,
 	) => void;
 }) => {
+	const inviteUseTable = "inviteUse";
+
 	if (invite.email && invite.email !== invitedUser.email) {
 		throw error("BAD_REQUEST", ERROR_CODES.INVALID_EMAIL, "INVALID_EMAIL");
 	}
@@ -147,9 +149,9 @@ export const consumeInvite = async ({
 
 	// If it's the last use
 	if (timesUsed === invite.maxUses - 1) {
-		// Delete all invite_use records for the invite
+		// Delete all invite uses records for the invite
 		await ctx.context.adapter.deleteMany({
-			model: "invite_use",
+			model: inviteUseTable,
 			where: [{ field: "inviteId", value: invite.id }],
 		});
 
@@ -159,9 +161,9 @@ export const consumeInvite = async ({
 			where: [{ field: "token", value: token }],
 		});
 	} else {
-		// If it isn't the last use, create a invite_use
+		// If it isn't the last use, create a invite use
 		await ctx.context.adapter.create({
-			model: "invite_use",
+			model: inviteUseTable,
 			data: {
 				inviteId: invite.id,
 				usedByUserId: userId,
