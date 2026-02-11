@@ -17,6 +17,7 @@
 		"type": "git",
 		"url": "git+https://github.com/0-Sandy/better-auth-invite-plugin.git"
 	},
+	"homepage": "https://better-auth-invite.vercel.app",
 	"keywords": [
 		"better-auth",
 		"invite",

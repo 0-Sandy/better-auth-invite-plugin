@@ -8,7 +8,9 @@
 [![Better Auth Plugin](https://img.shields.io/badge/Better_Auth-Plugin-blue?logo=better-auth)](https://www.better-auth.com/docs/concepts/plugins/)
 [![CI](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/0-Sandy/better-auth-invite-plugin/actions/workflows/ci.yml)
 
-A plugin for Better Auth that adds an invitation system, allowing you to create, send, and manage invites for user sign-ups or role upgrades.
+A plugin for [Better Auth](https://www.better-auth.com) that adds an invitation system, allowing you to create, send, and manage invites for user sign-ups or role upgrades.
+
+📘 Learn More: [Documentation](https://better-auth-invite.vercel.app).
 
 ## Features
 
