@@ -609,3 +609,71 @@ test("test activateInvite with custom schema", async ({ createAuth }) => {
 	expect(inviteUses).toBe(1);
 	expect(newInvite).not.toBeNull();
 });
+
+test("test activateInvite with infinite maxUses", async ({ createAuth }) => {
+	const { client, db, signInWithTestUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			defaultMaxUses: undefined,
+		},
+	});
+
+	const { headers } = await signInWithTestUser();
+
+	// MaxUses should be Infinite, because the invite is public and we are not overwriting the default value
+	const token = await client.invite.create({
+		role: "owner",
+		senderResponse: "token",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(token.error).toBe(null);
+
+	const tokenValue = token.data?.message;
+	if (!tokenValue) {
+		throw new Error("Token value is undefined");
+	}
+
+	const invite = await db.findOne<InviteTypeWithId>({
+		model: "invite",
+		where: [{ field: "token", value: tokenValue }],
+	});
+
+	if (!invite) {
+		throw new Error("Invite not found");
+	}
+
+	expect(invite.maxUses).toBe(Infinity);
+
+	const inviteId = invite.id;
+
+	const { error, data } = await client.invite.activate({
+		token: tokenValue,
+		callbackURL: "/auth/sign-in",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(error).toBe(null);
+	expect(data).toStrictEqual({
+		status: true,
+		message: "Invite activated successfully",
+	});
+
+	const newInvite = await db.findOne<InviteTypeWithId>({
+		model: "invite",
+		where: [{ field: "token", value: tokenValue }],
+	});
+
+	const inviteUses = await db.count({
+		model: "inviteUse",
+		where: [{ field: "inviteId", value: inviteId }],
+	});
+
+	// It should still exist because maxUses is infinite
+	expect(inviteUses).toBe(1);
+	expect(newInvite).not.toBeNull();
+});

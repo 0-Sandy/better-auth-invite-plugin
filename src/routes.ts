@@ -121,6 +121,10 @@ export const createInvite = (options: NewInviteOptions) => {
 			const token = generateToken();
 			const now = options.getDate();
 			const expiresAt = getDate(expiresIn, "sec");
+			const newMaxUses =
+				maxUses ??
+				options.defaultMaxUses ??
+				(inviteType === "private" ? 1 : Infinity);
 
 			await ctx.context.adapter.create({
 				model: "invite",
@@ -129,7 +133,7 @@ export const createInvite = (options: NewInviteOptions) => {
 					createdByUserId: inviterUser.id,
 					createdAt: now,
 					expiresAt,
-					maxUses,
+					maxUses: newMaxUses,
 					redirectToAfterUpgrade,
 					shareInviterName,
 					email,

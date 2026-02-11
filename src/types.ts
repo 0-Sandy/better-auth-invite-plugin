@@ -71,10 +71,10 @@ export type InviteOptions = {
 	 */
 	defaultShareInviterName?: boolean;
 	/**
-	 * Max token uses
-	 * @default 1
+	 * Max times an invite can be used
+	 * @default 1 on private invites and infinite on public invites
 	 */
-	defaultMaxUses: number;
+	defaultMaxUses?: number;
 	/**
 	 * How should the sender receive the token by default.
 	 * (sender only receives a token if no email is provided)
