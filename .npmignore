@@ -17,4 +17,4 @@ biome.json
 .gitignore
 .env
 *.tgz
-renovate.json
+lefthook.yml
