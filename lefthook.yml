@@ -11,7 +11,7 @@ pre-commit:
       stage_fixed: true
 
 pre-push:
-  parallel: true
+  parallel: false
   commands:
     typecheck:
       glob: "*.{js,ts,jsx,tsx}"
