@@ -2,7 +2,12 @@ import type { BetterAuthPlugin } from "better-auth";
 import { mergeSchema } from "better-auth/db";
 import { ERROR_CODES } from "./constants";
 import { invitesHook } from "./hooks";
-import { activateInvite, activateInviteCallback, createInvite } from "./routes";
+import {
+	activateInvite,
+	activateInviteCallback,
+	cancelInvite,
+	createInvite,
+} from "./routes";
 import { schema } from "./schema";
 import type { InviteOptions } from "./types";
 import { resolveInviteOptions } from "./utils";
@@ -16,6 +21,7 @@ export const invite = <O extends InviteOptions>(opts: O) => {
 			createInvite: createInvite(options),
 			activateInvite: activateInvite(options),
 			activateInviteCallback: activateInviteCallback(options),
+			cancelInvite: cancelInvite(options),
 		},
 		hooks: {
 			after: [invitesHook(options)],
