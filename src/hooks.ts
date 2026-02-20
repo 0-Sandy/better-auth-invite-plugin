@@ -3,8 +3,9 @@ import { createAuthMiddleware } from "better-auth/api";
 import { expireCookie } from "better-auth/cookies";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
+import { getInviteAdapter } from "./adapter";
 import { ERROR_CODES, INVITE_COOKIE_NAME } from "./constants";
-import type { InviteTypeWithId, NewInviteOptions } from "./types";
+import type { NewInviteOptions } from "./types";
 import { consumeInvite, redirectToAfterUpgrade } from "./utils";
 
 export const invitesHook = (options: NewInviteOptions) => {
@@ -32,9 +33,7 @@ export const invitesHook = (options: NewInviteOptions) => {
 				user: { id: userId },
 			} = validation.data;
 
-			const inviteUseTable = "inviteUse";
-
-			const invitedUser = (await ctx.context.internalAdapter.findUserById(
+			let invitedUser = (await ctx.context.internalAdapter.findUserById(
 				userId,
 			)) as UserWithRole | null;
 
@@ -58,10 +57,9 @@ export const invitesHook = (options: NewInviteOptions) => {
 				return;
 			}
 
-			const invite = await ctx.context.adapter.findOne<InviteTypeWithId>({
-				model: "invite",
-				where: [{ field: "token", value: inviteToken }],
-			});
+			const adapter = getInviteAdapter(ctx.context, options);
+
+			const invite = await adapter.findInvitation(inviteToken);
 
 			if (invite === null) {
 				return;
@@ -73,10 +71,7 @@ export const invitesHook = (options: NewInviteOptions) => {
 				});
 			}
 
-			const timesUsed = await ctx.context.adapter.count({
-				model: inviteUseTable,
-				where: [{ field: "inviteId", value: invite.id }],
-			});
+			const timesUsed = await adapter.countInvitationUses(invite.id);
 
 			if (!(timesUsed < invite.maxUses)) {
 				throw ctx.error("BAD_REQUEST", {
@@ -91,6 +86,14 @@ export const invitesHook = (options: NewInviteOptions) => {
 				throw ctx.error("INTERNAL_SERVER_ERROR", {
 					message: "No session found for updating cookie",
 				});
+			}
+
+			const before = await options.inviteHooks?.beforeAcceptInvite?.(
+				ctx,
+				invitedUser,
+			);
+			if (before?.user) {
+				invitedUser = before.user;
 			}
 
 			const error = (
@@ -114,10 +117,16 @@ export const invitesHook = (options: NewInviteOptions) => {
 				session,
 				newAccount: true,
 				error,
+				adapter,
 			});
 
 			// delete the invite cookie
 			expireCookie(ctx, inviteCookie);
+
+			await options.inviteHooks?.afterAcceptInvite?.(ctx, {
+				invitation: invite,
+				invitedUser,
+			});
 
 			// return { context: ctx };
 			await redirectToAfterUpgrade({

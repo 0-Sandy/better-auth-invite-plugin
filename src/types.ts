@@ -13,6 +13,13 @@ export type InviteOptions = {
 	 * @param invitedUser The role and optionally email of the user to invited user
 	 * @param inviterUser The full user with role of the user that created the invite
 	 *
+	 * @example ```ts
+	 * async canCreateInvite({ ctx }) {
+	 *   const canCreateInvite = await hasPermission(ctx, 'create-invite');
+	 *   return canCreateInvite
+	 * }
+	 * ```
+	 *
 	 * @default true
 	 */
 	canCreateInvite?:
@@ -22,16 +29,27 @@ export type InviteOptions = {
 					role: string;
 				};
 				inviterUser: UserWithRole;
-		  }) => boolean)
+				ctx: GenericEndpointContext;
+		  }) => Promise<boolean> | boolean)
 		| boolean;
 	/**
 	 * A function that runs before a user accepts an invite
 	 * @param user The user object with the role
 	 *
+	 * @example ```ts
+	 * async canAcceptInvite({ ctx }) {
+	 *   const canAcceptInvite = await hasPermission(ctx, 'accept-invite');
+	 *   return canAcceptInvite
+	 * }
+	 * ```
+	 *
 	 * @default true
 	 */
 	canAcceptInvite?:
-		| ((data: { invitedUser: UserWithRole; newAccount: boolean }) => boolean)
+		| ((data: {
+				invitedUser: UserWithRole;
+				newAccount: boolean;
+		  }) => Promise<boolean> | boolean)
 		| boolean;
 	/**
 	 * A function to generate a custom token
@@ -90,18 +108,9 @@ export type InviteOptions = {
 	 */
 	defaultSenderResponseRedirect?: "signUp" | "signIn";
 	/**
-	 * send user invitation email
+	 * Send email to the user with the invite link.
 	 */
 	sendUserInvitation?: (
-		/**
-		 * @param email the email address of the user to send the
-		 * invitation email to
-		 * @param role the role to assign to the invited user
-		 * @param url the URL to send the invitation email to
-		 * @param token the token to send to the user (could be used instead of sending the url
-		 * @param newAccount if true, you should send a user invitation email, else send a role upgrade email
-		 * if you need to redirect the user to custom route)
-		 */
 		data: {
 			email: string;
 			name?: string;
@@ -114,9 +123,9 @@ export type InviteOptions = {
 		 * The request object
 		 */
 		request?: Request,
-	) => Promise<void>;
+	) => Promise<void> | void;
 	/**
-	 * send user role upgrade email
+	 * Send user role upgrade email
 	 *
 	 * @deprecated Use `sendUserInvitation` instead.
 	 */
@@ -131,7 +140,7 @@ export type InviteOptions = {
 		 * The request object
 		 */
 		request?: Request,
-	) => Promise<void>;
+	) => Promise<void> | void;
 	/**
 	 * Number of seconds the invitation token is
 	 * valid for.
@@ -157,11 +166,36 @@ export type InviteOptions = {
 			newAccount: boolean;
 		},
 		request?: Request,
-	) => Promise<void>;
+	) => Promise<void> | void;
 	/**
 	 * Custom schema for the invite plugin
 	 */
-	schema?: InferOptionSchema<InviteSchema> | undefined;
+	schema?: InferOptionSchema<InviteSchema>;
+	/**
+	 *
+	 */
+	inviteHooks?: {
+		beforeCreateInvite?: (ctx: GenericEndpointContext) => Promise<void> | void;
+		afterCreateInvite?: (
+			ctx: GenericEndpointContext,
+			invitation: InviteTypeWithId,
+		) => Promise<void> | void;
+		beforeAcceptInvite?: (
+			ctx: GenericEndpointContext,
+			invitedUser: UserWithRole,
+		) =>
+			| Promise<{ user?: UserWithRole }>
+			| Promise<void>
+			| { user?: UserWithRole }
+			| void;
+		afterAcceptInvite?: (
+			ctx: GenericEndpointContext,
+			data: {
+				invitation: InviteTypeWithId;
+				invitedUser: UserWithRole;
+			},
+		) => Promise<void> | void;
+	};
 };
 
 type MakeRequired<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
@@ -201,4 +235,14 @@ export type afterUpgradeTypes = {
 	ctx: GenericEndpointContext;
 	invite: InviteTypeWithId;
 	signUp: boolean;
+};
+
+export type InviteUseType = {
+	inviteId: string;
+	usedByUserId: string;
+	usedAt: Date;
+};
+
+export type InviteUseTypeWithId = InviteUseType & {
+	id: string;
 };

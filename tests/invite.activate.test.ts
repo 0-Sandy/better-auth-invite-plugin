@@ -475,7 +475,7 @@ test("throws error when using different email than invite email", async ({
 	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			sendUserInvitation: async () => {},
+			sendUserInvitation: () => {},
 		},
 	});
 

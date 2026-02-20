@@ -19,8 +19,8 @@ import {
 } from "better-auth/crypto";
 import { parseUserOutput } from "better-auth/db";
 import { createAuthMiddleware, type UserWithRole } from "better-auth/plugins";
-import type * as z from "zod";
-import type { createInviteBodySchema } from "./body";
+import type { InviteAdapter } from "./adapter";
+import type { CreateInvite } from "./body";
 import { ERROR_CODES } from "./constants";
 import type {
 	InviteOptions,
@@ -46,7 +46,7 @@ export const resolveInviteOptions = (
 });
 
 export const resolveInvitePayload = (
-	body: z.infer<typeof createInviteBodySchema>,
+	body: CreateInvite,
 	options: NewInviteOptions,
 ) => ({
 	tokenType: body.tokenType ?? options.defaultTokenType,
@@ -90,6 +90,7 @@ export const consumeInvite = async ({
 	session,
 	newAccount,
 	error,
+	adapter,
 }: {
 	ctx: GenericEndpointContext;
 	invite: InviteTypeWithId;
@@ -105,9 +106,8 @@ export const consumeInvite = async ({
 		errorMessage: string,
 		urlErrorCode: string,
 	) => void;
+	adapter: InviteAdapter;
 }) => {
-	const inviteUseTable = "inviteUse";
-
 	if (invite.email && invite.email !== invitedUser.email) {
 		throw error("BAD_REQUEST", ERROR_CODES.INVALID_EMAIL, "INVALID_EMAIL");
 	}
@@ -145,30 +145,21 @@ export const consumeInvite = async ({
 		user: updatedUser,
 	});
 
-	const usageDate = options.getDate();
+	const usedAt = options.getDate();
 
 	// If it's the last use
 	if (timesUsed === invite.maxUses - 1) {
 		// Delete all invite uses records for the invite
-		await ctx.context.adapter.deleteMany({
-			model: inviteUseTable,
-			where: [{ field: "inviteId", value: invite.id }],
-		});
+		adapter.deleteInviteUses(invite.id);
 
 		// Delete the invite
-		await ctx.context.adapter.delete({
-			model: "invite",
-			where: [{ field: "token", value: token }],
-		});
+		await adapter.deleteInvitation(token);
 	} else {
 		// If it isn't the last use, create a invite use
-		await ctx.context.adapter.create({
-			model: inviteUseTable,
-			data: {
-				inviteId: invite.id,
-				usedByUserId: userId,
-				usedAt: usageDate,
-			},
+		await adapter.createInviteUse({
+			inviteId: invite.id,
+			usedByUserId: userId,
+			usedAt,
 		});
 	}
 

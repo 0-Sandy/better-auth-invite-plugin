@@ -6,23 +6,17 @@ import {
 } from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
+import { getInviteAdapter } from "./adapter";
 import { createInviteBodySchema } from "./body";
 import { ERROR_CODES, INVITE_COOKIE_NAME } from "./constants";
-import type {
-	afterUpgradeTypes,
-	InviteType,
-	InviteTypeWithId,
-	NewInviteOptions,
-} from "./types";
+import type { afterUpgradeTypes, NewInviteOptions } from "./types";
 import {
 	consumeInvite,
-	getDate,
 	optionalSessionMiddleware,
 	redirectCallback,
 	redirectError,
 	redirectToAfterUpgrade,
 	resolveInvitePayload,
-	resolveTokenGenerator,
 } from "./utils";
 
 export const createInvite = (options: NewInviteOptions) => {
@@ -64,13 +58,8 @@ export const createInvite = (options: NewInviteOptions) => {
 
 			const { email, role } = ctx.body;
 			const {
-				tokenType,
-				redirectToAfterUpgrade,
 				redirectToSignUp,
 				redirectToSignIn,
-				maxUses,
-				expiresIn,
-				shareInviterName,
 				senderResponse,
 				senderResponseRedirect,
 			} = resolveInvitePayload(ctx.body, options);
@@ -94,9 +83,10 @@ export const createInvite = (options: NewInviteOptions) => {
 
 			const canCreateInvite =
 				typeof options.canCreateInvite === "function"
-					? options.canCreateInvite({
+					? await options.canCreateInvite({
 							invitedUser: basicInvitedUser,
 							inviterUser,
+							ctx,
 						})
 					: options.canCreateInvite;
 
@@ -106,7 +96,9 @@ export const createInvite = (options: NewInviteOptions) => {
 				});
 			}
 
-			const generateToken = resolveTokenGenerator(tokenType, options);
+			const adapter = getInviteAdapter(ctx.context, options);
+
+			await options.inviteHooks?.beforeCreateInvite?.(ctx);
 
 			const invitedUser =
 				inviteType === "private"
@@ -118,30 +110,10 @@ export const createInvite = (options: NewInviteOptions) => {
 
 			// If the user already exists they should sign in, else they should sign up
 			const callbackURL = invitedUser ? redirectToSignIn : redirectToSignUp;
-			const token = generateToken();
-			const now = options.getDate();
-			const expiresAt = getDate(expiresIn, "sec");
-			const newMaxUses =
-				maxUses ??
-				options.defaultMaxUses ??
-				(inviteType === "private" ? 1 : Infinity);
 
-			await ctx.context.adapter.create({
-				model: "invite",
-				data: {
-					token,
-					createdByUserId: inviterUser.id,
-					createdAt: now,
-					expiresAt,
-					maxUses: newMaxUses,
-					redirectToAfterUpgrade,
-					shareInviterName,
-					email,
-					role,
-				} satisfies InviteType,
-			});
+			const invitation = await adapter.createInvite(ctx.body, inviterUser);
 
-			const url = `${ctx.context.baseURL}/invite/${token}`;
+			const url = `${ctx.context.baseURL}/invite/${invitation.token}`;
 			const redirectURLEmail = `${url}?callbackURL=${encodeURIComponent(callbackURL)}`;
 
 			// If the invite is private, send the invitation or role upgrade using the configured function
@@ -173,7 +145,7 @@ export const createInvite = (options: NewInviteOptions) => {
 								name: invitedUser?.user.name,
 								role,
 								url: redirectURLEmail,
-								token,
+								token: invitation.token,
 								newAccount,
 							},
 							ctx.request,
@@ -186,6 +158,8 @@ export const createInvite = (options: NewInviteOptions) => {
 					});
 				}
 
+				await options.inviteHooks?.afterCreateInvite?.(ctx, invitation);
+
 				return ctx.json({
 					status: true,
 					message: "The invitation was sent",
@@ -197,7 +171,10 @@ export const createInvite = (options: NewInviteOptions) => {
 					? redirectToSignUp
 					: redirectToSignIn;
 			const redirectURL = `${url}?callbackURL=${redirectTo}`;
-			const returnToken = senderResponse === "token" ? token : redirectURL;
+			const returnToken =
+				senderResponse === "token" ? invitation.token : redirectURL;
+
+			await options.inviteHooks?.afterCreateInvite?.(ctx, invitation);
 
 			return ctx.json({
 				status: true,
@@ -442,21 +419,15 @@ const activateInviteLogic = async ({
 	afterUpgrade: (opts: afterUpgradeTypes) => Promise<unknown>;
 	needToSignInUp: () => void;
 }) => {
-	const inviteUseTable = "inviteUse";
+	const adapter = getInviteAdapter(ctx.context, options);
 
-	const invite = (await ctx.context.adapter.findOne({
-		model: "invite",
-		where: [{ field: "token", value: token }],
-	})) as InviteTypeWithId | null;
+	const invite = await adapter.findInvitation(token);
 
-	if (invite === null) {
+	if (!invite) {
 		throw error("BAD_REQUEST", "Invalid invite token", "INVALID_TOKEN");
 	}
 
-	const timesUsed = await ctx.context.adapter.count({
-		model: inviteUseTable,
-		where: [{ field: "inviteId", value: invite.id }],
-	});
+	const timesUsed = await adapter.countInvitationUses(invite.id);
 
 	if (!(timesUsed < invite.maxUses)) {
 		throw error(
@@ -472,9 +443,17 @@ const activateInviteLogic = async ({
 
 	const sessionObject = ctx.context.session;
 	const session = sessionObject?.session;
-	const invitedUser = sessionObject?.user as UserWithRole | null;
+	let invitedUser = sessionObject?.user as UserWithRole | null;
 
 	if (invitedUser && session) {
+		const before = await options.inviteHooks?.beforeAcceptInvite?.(
+			ctx,
+			invitedUser,
+		);
+		if (before?.user) {
+			invitedUser = before.user;
+		}
+
 		await consumeInvite({
 			ctx,
 			invite,
@@ -486,6 +465,12 @@ const activateInviteLogic = async ({
 			session,
 			newAccount: false,
 			error,
+			adapter,
+		});
+
+		await options.inviteHooks?.afterAcceptInvite?.(ctx, {
+			invitation: invite,
+			invitedUser,
 		});
 
 		return await afterUpgrade({

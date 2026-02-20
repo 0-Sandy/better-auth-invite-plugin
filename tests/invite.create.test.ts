@@ -14,10 +14,8 @@ test("test warn when using sendUserRoleUpgrade", async ({ createAuth }) => {
 	const { client, db, signInWithTestUser, logger } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			sendUserInvitation: (data, request) =>
-				mock.sendUserInvitation(data, request),
-			sendUserRoleUpgrade: (data, request) =>
-				mock.sendUserRoleUpgrade(data, request),
+			sendUserInvitation: mock.sendUserInvitation,
+			sendUserRoleUpgrade: mock.sendUserRoleUpgrade,
 		},
 	});
 
@@ -67,8 +65,7 @@ test("uses sendUserInvitation when invited user does not exist", async ({
 	const { client, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			sendUserInvitation: (data, request) =>
-				mock.sendUserInvitation(data, request),
+			sendUserInvitation: mock.sendUserInvitation,
 		},
 	});
 
@@ -103,8 +100,7 @@ test("uses sendUserRoleUpgrade when invited user exists", async ({
 	const { client, db, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			sendUserInvitation: (data, request) =>
-				mock.sendUserInvitation(data, request),
+			sendUserInvitation: mock.sendUserInvitation,
 		},
 	});
 
@@ -181,8 +177,7 @@ test("catches invitation email error and responds with 500", async ({
 	const { client, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			sendUserInvitation: (data, request) =>
-				mock.sendUserInvitationWithError(data, request),
+			sendUserInvitation: mock.sendUserInvitationWithError,
 		},
 	});
 
@@ -214,7 +209,7 @@ test("generateToken should be used if it exists", async ({ createAuth }) => {
 	const { client, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			generateToken: () => mock.generateToken(),
+			generateToken: mock.generateToken,
 		},
 	});
 
@@ -244,8 +239,8 @@ test("getDate should be used if it exists", async ({ createAuth }) => {
 	const { client, db, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			getDate: () => mock.getDate(),
-			sendUserInvitation: async () => {},
+			getDate: mock.getDate,
+			sendUserInvitation: () => {},
 		},
 	});
 
@@ -349,7 +344,7 @@ test("shareInviterName is stored correctly", async ({ createAuth }) => {
 		pluginOptions: {
 			...defaultOptions,
 			defaultShareInviterName: false,
-			sendUserInvitation: async () => {},
+			sendUserInvitation: () => {},
 		},
 	});
 
@@ -370,4 +365,60 @@ test("shareInviterName is stored correctly", async ({ createAuth }) => {
 
 	// Make sure we respect privacy, the person who sent the invite shouldn’t be shown
 	expect(invite?.shareInviterName).toBe(false);
+});
+
+test("invite hooks run in the correct order with the expected arguments", async ({
+	createAuth,
+}) => {
+	const { client, signInWithTestUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			defaultShareInviterName: false,
+			sendUserInvitation: () => {},
+			inviteHooks: {
+				beforeCreateInvite: mock.beforeCreateInvite,
+				afterCreateInvite: mock.afterCreateInvite,
+			},
+		},
+	});
+
+	const { headers } = await signInWithTestUser();
+
+	const { error } = await client.invite.create({
+		role: "user",
+		fetchOptions: { headers },
+	});
+
+	expect(error).toBe(null);
+
+	// Both hooks should run exactly once
+	expect(mock.beforeCreateInvite).toHaveBeenCalledTimes(1);
+	expect(mock.afterCreateInvite).toHaveBeenCalledTimes(1);
+
+	// Make sure beforeCreateInvite runs before afterCreateInvite
+	const beforeOrder = mock.beforeCreateInvite.mock.invocationCallOrder[0];
+	const afterOrder = mock.afterCreateInvite.mock.invocationCallOrder[0];
+	expect(beforeOrder).toBeLessThan(afterOrder);
+
+	// Should have been called with the correct arguments
+	expect(mock.beforeCreateInvite).toHaveBeenCalledWith(
+		expect.objectContaining({
+			path: "/invite/create",
+			method: "POST",
+			body: expect.any(Object),
+			headers: expect.any(Headers),
+		}),
+	);
+	expect(mock.afterCreateInvite).toHaveBeenCalledWith(
+		expect.objectContaining({
+			path: "/invite/create",
+		}),
+		expect.objectContaining({
+			id: expect.any(String),
+			token: expect.any(String),
+			role: "user",
+			createdAt: expect.any(Date),
+			expiresAt: expect.any(Date),
+		}),
+	);
 });

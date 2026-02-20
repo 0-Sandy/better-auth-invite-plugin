@@ -110,3 +110,5 @@ export const createInviteBodySchema = z.object({
 		)
 		.optional(),
 });
+
+export type CreateInvite = z.infer<typeof createInviteBodySchema>;
