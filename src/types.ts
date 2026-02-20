@@ -52,6 +52,21 @@ export type InviteOptions = {
 		  }) => Promise<boolean> | boolean)
 		| boolean;
 	/**
+	 * A function that runs before a user cancels an invite.
+	 *
+	 * Note: regardless of this option, only the user who created the invite
+	 * can cancel it.
+	 *
+	 * @default true
+	 */
+	canCancelInvite?:
+		| ((data: {
+				inviterUser: UserWithRole;
+				invite: InviteTypeWithId;
+				ctx: GenericEndpointContext;
+		  }) => Promise<boolean> | boolean)
+		| boolean;
+	/**
 	 * A function to generate a custom token
 	 */
 	generateToken?: () => string;
@@ -194,6 +209,14 @@ export type InviteOptions = {
 				invitation: InviteTypeWithId;
 				invitedUser: UserWithRole;
 			},
+		) => Promise<void> | void;
+		beforeCancelInvite?: (
+			ctx: GenericEndpointContext,
+			invitation: InviteTypeWithId,
+		) => Promise<void> | void;
+		afterCancelInvite?: (
+			ctx: GenericEndpointContext,
+			invitation: InviteTypeWithId,
 		) => Promise<void> | void;
 	};
 };

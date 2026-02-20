@@ -15,9 +15,14 @@ const canCreateInvite = vi.fn().mockReturnValue(true);
 const generateToken = vi.fn().mockReturnValue(test_token);
 const getDate = vi.fn().mockReturnValue(test_date);
 const canAcceptInvite = vi.fn().mockReturnValue(false);
+const canCancelInvite = vi.fn().mockReturnValue(false);
 const onInvitationUsed = vi.fn();
 const beforeCreateInvite = vi.fn();
 const afterCreateInvite = vi.fn();
+const beforeCancelInvite = vi.fn();
+const afterCancelInvite = vi.fn();
+const beforeAcceptInvite = vi.fn();
+const afterAcceptInvite = vi.fn();
 
 export default {
 	test_token,
@@ -29,7 +34,12 @@ export default {
 	generateToken,
 	getDate,
 	canAcceptInvite,
+	canCancelInvite,
 	onInvitationUsed,
 	beforeCreateInvite,
 	afterCreateInvite,
+	beforeCancelInvite,
+	afterCancelInvite,
+	beforeAcceptInvite,
+	afterAcceptInvite,
 };

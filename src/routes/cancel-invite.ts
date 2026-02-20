@@ -85,8 +85,28 @@ export const cancelInvite = (options: NewInviteOptions) => {
 				});
 			}
 
+			const canCancelInvite =
+				typeof options.canCancelInvite === "function"
+					? await options.canCancelInvite({
+							inviterUser,
+							invite,
+							ctx,
+						})
+					: options.canCancelInvite;
+
+			if (!canCancelInvite) {
+				throw ctx.error("BAD_REQUEST", {
+					message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+					errorCode: "INSUFFICIENT_PERMISSIONS",
+				});
+			}
+
+			await options.inviteHooks?.beforeCancelInvite?.(ctx, invite);
+
 			await adapter.deleteInviteUses(invite.id);
 			await adapter.deleteInvitation(token);
+
+			await options.inviteHooks?.afterCancelInvite?.(ctx, invite);
 
 			return ctx.json({
 				status: true,

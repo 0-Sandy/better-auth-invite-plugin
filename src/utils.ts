@@ -42,6 +42,7 @@ export const resolveInviteOptions = (
 	defaultRedirectToSignUp: opts.defaultRedirectToSignUp ?? "/auth/sign-up",
 	canCreateInvite: opts.canCreateInvite ?? true,
 	canAcceptInvite: opts.canAcceptInvite ?? true,
+	canCancelInvite: opts.canCancelInvite ?? true,
 	...opts,
 });
 

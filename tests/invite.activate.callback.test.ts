@@ -372,6 +372,102 @@ test("onInvitationUsed is called with correct payload", async ({
 	);
 });
 
+test("activate invite callback hooks run in the correct order with the expected arguments", async ({
+	createAuth,
+}) => {
+	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			inviteHooks: {
+				beforeAcceptInvite: mock.beforeAcceptInvite,
+				afterAcceptInvite: mock.afterAcceptInvite,
+			},
+		},
+	});
+
+	const invitedUser = {
+		email: "test@email.com",
+		role: "user",
+		name: "Test User",
+		password: "12345678",
+	};
+	const newRole = "admin";
+
+	createUser(invitedUser, db);
+
+	const { headers } = await signInWithTestUser();
+
+	const token = await client.invite.create({
+		role: newRole,
+		senderResponse: "token",
+		fetchOptions: { headers },
+	});
+
+	expect(token.error).toBe(null);
+
+	const { headers: newHeaders } = await signInWithUser(
+		invitedUser.email,
+		invitedUser.password,
+	);
+
+	const tokenValue = token.data?.message;
+	if (!tokenValue) {
+		throw new Error("Token value is undefined");
+	}
+
+	const { newError, path } = await activateInviteGet(client, {
+		token: tokenValue,
+		callbackURL: "/auth/sign-in",
+		fetchOptions: { headers: newHeaders },
+	});
+
+	expect(newError).toBe(null);
+	expect(path).toBe("http://localhost:3000/auth/invited");
+
+	expect(mock.beforeAcceptInvite).toHaveBeenCalledTimes(1);
+	expect(mock.afterAcceptInvite).toHaveBeenCalledTimes(1);
+
+	const beforeOrder = mock.beforeAcceptInvite.mock.invocationCallOrder[0];
+	const afterOrder = mock.afterAcceptInvite.mock.invocationCallOrder[0];
+	expect(beforeOrder).toBeLessThan(afterOrder);
+
+	expect(mock.beforeAcceptInvite).toHaveBeenCalledWith(
+		expect.objectContaining({
+			path: "/invite/:token",
+			method: "GET",
+			params: expect.objectContaining({ token: tokenValue }),
+			query: expect.objectContaining({
+				callbackURL: "/auth/sign-in",
+			}),
+			headers: expect.any(Headers),
+		}),
+		expect.objectContaining({
+			email: invitedUser.email,
+			name: invitedUser.name,
+			role: invitedUser.role,
+		}),
+	);
+	expect(mock.afterAcceptInvite).toHaveBeenCalledWith(
+		expect.objectContaining({
+			path: "/invite/:token",
+		}),
+		expect.objectContaining({
+			invitation: expect.objectContaining({
+				id: expect.any(String),
+				token: tokenValue,
+				role: newRole,
+				createdAt: expect.any(Date),
+				expiresAt: expect.any(Date),
+			}),
+			invitedUser: expect.objectContaining({
+				email: invitedUser.email,
+				name: invitedUser.name,
+				role: invitedUser.role,
+			}),
+		}),
+	);
+});
+
 test("throws error when using different email than invite email", async ({
 	createAuth,
 }) => {

@@ -2,6 +2,7 @@ import { beforeEach, expect, vi } from "vitest";
 import { ERROR_CODES } from "../src/constants";
 import type { InviteTypeWithId } from "../src/types";
 import { defaultOptions, test } from "./helpers/better-auth";
+import mock from "./helpers/mocks";
 import { createUser } from "./helpers/users";
 
 beforeEach(() => {
@@ -169,6 +170,129 @@ test("cancelling with an invalid token returns error", async ({
 			message: ERROR_CODES.INVALID_TOKEN,
 			status: 400,
 			statusText: "BAD_REQUEST",
+		}),
+	);
+});
+
+test("canCancelInvite is called and can block cancellation", async ({
+	createAuth,
+}) => {
+	const { client, db, signInWithTestUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			canCancelInvite: mock.canCancelInvite,
+		},
+	});
+
+	const { headers } = await signInWithTestUser();
+
+	const created = await client.invite.create({
+		role: "user",
+		senderResponse: "token",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(created.error).toBe(null);
+
+	const token = created.data?.message;
+	if (!token) {
+		throw new Error("Token value is undefined");
+	}
+
+	const cancelled = await client.invite.cancel({
+		token,
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(mock.canCancelInvite).toHaveBeenCalledOnce();
+	expect(cancelled.data).toBeNull();
+	expect(cancelled.error).toEqual(
+		expect.objectContaining({
+			errorCode: "INSUFFICIENT_PERMISSIONS",
+			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+			status: 400,
+			statusText: "BAD_REQUEST",
+		}),
+	);
+
+	const inviteAfter = await db.count({
+		model: "invite",
+		where: [{ field: "token", value: token }],
+	});
+	expect(inviteAfter).toBe(1);
+});
+
+test("cancel invite hooks run in the correct order with the expected arguments", async ({
+	createAuth,
+}) => {
+	const { client, signInWithTestUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+			inviteHooks: {
+				beforeCancelInvite: mock.beforeCancelInvite,
+				afterCancelInvite: mock.afterCancelInvite,
+			},
+		},
+	});
+
+	const { headers } = await signInWithTestUser();
+
+	const created = await client.invite.create({
+		role: "user",
+		senderResponse: "token",
+		fetchOptions: { headers },
+	});
+
+	expect(created.error).toBe(null);
+
+	const token = created.data?.message;
+	if (!token) {
+		throw new Error("Token value is undefined");
+	}
+
+	const { error } = await client.invite.cancel({
+		token,
+		fetchOptions: { headers },
+	});
+
+	expect(error).toBe(null);
+
+	expect(mock.beforeCancelInvite).toHaveBeenCalledTimes(1);
+	expect(mock.afterCancelInvite).toHaveBeenCalledTimes(1);
+
+	const beforeOrder = mock.beforeCancelInvite.mock.invocationCallOrder[0];
+	const afterOrder = mock.afterCancelInvite.mock.invocationCallOrder[0];
+	expect(beforeOrder).toBeLessThan(afterOrder);
+
+	expect(mock.beforeCancelInvite).toHaveBeenCalledWith(
+		expect.objectContaining({
+			path: "/invite/cancel",
+			method: "POST",
+			body: expect.objectContaining({ token }),
+			headers: expect.any(Headers),
+		}),
+		expect.objectContaining({
+			id: expect.any(String),
+			token,
+			role: "user",
+			createdAt: expect.any(Date),
+			expiresAt: expect.any(Date),
+		}),
+	);
+	expect(mock.afterCancelInvite).toHaveBeenCalledWith(
+		expect.objectContaining({
+			path: "/invite/cancel",
+		}),
+		expect.objectContaining({
+			id: expect.any(String),
+			token,
+			role: "user",
+			createdAt: expect.any(Date),
+			expiresAt: expect.any(Date),
 		}),
 	);
 });
