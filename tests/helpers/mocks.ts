@@ -16,6 +16,7 @@ const generateToken = vi.fn().mockReturnValue(test_token);
 const getDate = vi.fn().mockReturnValue(test_date);
 const canAcceptInvite = vi.fn().mockReturnValue(false);
 const canCancelInvite = vi.fn().mockReturnValue(false);
+const canRejectInvite = vi.fn().mockReturnValue(false);
 const onInvitationUsed = vi.fn();
 const beforeCreateInvite = vi.fn();
 const afterCreateInvite = vi.fn();
@@ -23,6 +24,8 @@ const beforeCancelInvite = vi.fn();
 const afterCancelInvite = vi.fn();
 const beforeAcceptInvite = vi.fn();
 const afterAcceptInvite = vi.fn();
+const beforeRejectInvite = vi.fn();
+const afterRejectInvite = vi.fn();
 
 export default {
 	test_token,
@@ -35,6 +38,7 @@ export default {
 	getDate,
 	canAcceptInvite,
 	canCancelInvite,
+	canRejectInvite,
 	onInvitationUsed,
 	beforeCreateInvite,
 	afterCreateInvite,
@@ -42,4 +46,6 @@ export default {
 	afterCancelInvite,
 	beforeAcceptInvite,
 	afterAcceptInvite,
+	beforeRejectInvite,
+	afterRejectInvite,
 };

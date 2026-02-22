@@ -10,6 +10,7 @@ export const ERROR_CODES = {
 	INVALID_TOKEN: "Invalid or non-existent token",
 	INVALID_EMAIL: "This token is for a specific email, this is not it",
 	CANT_ACCEPT_INVITE: "You cannot accept this invite",
+	CANT_REJECT_INVITE: "You cannot reject this invite",
 	ERROR_SENDING_THE_INVITATION_EMAIL: "Error sending the invitation email",
 } as const;
 

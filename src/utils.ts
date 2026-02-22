@@ -43,6 +43,7 @@ export const resolveInviteOptions = (
 	canCreateInvite: opts.canCreateInvite ?? true,
 	canAcceptInvite: opts.canAcceptInvite ?? true,
 	canCancelInvite: opts.canCancelInvite ?? true,
+	canRejectInvite: opts.canRejectInvite ?? true,
 	...opts,
 });
 
@@ -82,7 +83,7 @@ export const resolveTokenGenerator = (
 
 export const consumeInvite = async ({
 	ctx,
-	invite,
+	invitation,
 	invitedUser,
 	options,
 	userId,
@@ -94,7 +95,7 @@ export const consumeInvite = async ({
 	adapter,
 }: {
 	ctx: GenericEndpointContext;
-	invite: InviteTypeWithId;
+	invitation: InviteTypeWithId;
 	invitedUser: UserWithRole;
 	options: NewInviteOptions;
 	userId: string;
@@ -109,7 +110,7 @@ export const consumeInvite = async ({
 	) => void;
 	adapter: InviteAdapter;
 }) => {
-	if (invite.email && invite.email !== invitedUser.email) {
+	if (invitation.email && invitation.email !== invitedUser.email) {
 		throw error("BAD_REQUEST", ERROR_CODES.INVALID_EMAIL, "INVALID_EMAIL");
 	}
 
@@ -130,13 +131,13 @@ export const consumeInvite = async ({
 		model: "user",
 		where: [{ field: "id", value: userId }],
 		update: {
-			role: invite.role,
+			role: invitation.role,
 		},
 	});
 
 	const updatedUser = {
 		...invitedUser,
-		role: invite.role,
+		role: invitation.role,
 	};
 	/**
 	 * Update the session cookie with the new user data
@@ -149,16 +150,16 @@ export const consumeInvite = async ({
 	const usedAt = options.getDate();
 
 	// If it's the last use
-	if (timesUsed === invite.maxUses - 1) {
+	if (timesUsed === invitation.maxUses - 1) {
 		// Delete all invite uses records for the invite
-		adapter.deleteInviteUses(invite.id);
+		adapter.deleteInviteUses(invitation.id);
 
 		// Delete the invite
 		await adapter.deleteInvitation(token);
 	} else {
 		// If it isn't the last use, create a invite use
 		await adapter.createInviteUse({
-			inviteId: invite.id,
+			inviteId: invitation.id,
 			usedByUserId: userId,
 			usedAt,
 		});
@@ -183,22 +184,22 @@ export const consumeInvite = async ({
 export const redirectToAfterUpgrade = async ({
 	shareInviterName,
 	ctx,
-	invite,
+	invitation,
 	signUp,
 }: {
 	shareInviterName: boolean;
 	ctx: GenericEndpointContext;
-	invite: InviteTypeWithId;
+	invitation: InviteTypeWithId;
 	signUp: boolean;
 }) => {
 	const createdByUser = (await ctx.context.internalAdapter.findUserById(
-		invite.createdByUserId,
+		invitation.createdByUserId,
 	)) as UserWithRole;
 	const invitedByName = createdByUser.name;
 
 	throw ctx.redirect(
-		redirectCallback(ctx.context, invite.redirectToAfterUpgrade, {
-			role: invite.role,
+		redirectCallback(ctx.context, invitation.redirectToAfterUpgrade, {
+			role: invitation.role,
 			signUp: String(signUp),
 			...(shareInviterName && { invitedByName }),
 		}),

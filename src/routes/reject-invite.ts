@@ -5,26 +5,26 @@ import { getInviteAdapter } from "../adapter";
 import { ERROR_CODES } from "../constants";
 import type { NewInviteOptions } from "../types";
 
-export const cancelInvite = (options: NewInviteOptions) => {
+export const rejectInvite = (options: NewInviteOptions) => {
 	return createAuthEndpoint(
-		"/invite/cancel",
+		"/invite/reject",
 		{
 			method: "POST",
 			use: [sessionMiddleware],
 			body: z.object({
 				/**
-				 * The invite token to cancel.
+				 * The invite token to reject.
 				 */
-				token: z.string().describe("The invite token to cancel."),
+				token: z.string().describe("The invite token to reject."),
 			}),
 			metadata: {
 				openapi: {
-					operationId: "cancelInvite",
+					operationId: "rejectInvite",
 					description:
-						"Cancel an invitation. Only the user that created the invite can cancel it.",
+						"Reject an invitation. Only the invitee (user whose email matches the invite for private invites) can reject it.",
 					responses: {
 						"200": {
-							description: "Invite cancelled successfully",
+							description: "Invite rejected successfully",
 							content: {
 								"application/json": {
 									schema: {
@@ -36,7 +36,7 @@ export const cancelInvite = (options: NewInviteOptions) => {
 											},
 											message: {
 												type: "string",
-												example: "Invite cancelled successfully",
+												example: "Invite rejected successfully",
 											},
 										},
 										required: ["status", "message"],
@@ -46,7 +46,7 @@ export const cancelInvite = (options: NewInviteOptions) => {
 						},
 						"400": {
 							description:
-								"Invalid token or user does not have permission to cancel this invite",
+								"Invalid token or user does not have permission to reject this invite",
 							content: {
 								"application/json": {
 									schema: {
@@ -65,7 +65,7 @@ export const cancelInvite = (options: NewInviteOptions) => {
 		},
 		async (ctx) => {
 			const { token } = ctx.body;
-			const inviterUser = ctx.context.session.user as UserWithRole;
+			const inviteeUser = ctx.context.session.user as UserWithRole;
 
 			const adapter = getInviteAdapter(ctx.context, options);
 
@@ -78,39 +78,41 @@ export const cancelInvite = (options: NewInviteOptions) => {
 				});
 			}
 
-			if (invitation.createdByUserId !== inviterUser.id) {
+			const inviteType = invitation.email ? "private" : "public";
+
+			if (inviteType === "public" || invitation.email !== inviteeUser.email) {
 				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-					errorCode: "INSUFFICIENT_PERMISSIONS",
+					message: ERROR_CODES.CANT_REJECT_INVITE,
+					errorCode: "CANT_REJECT_INVITE",
 				});
 			}
 
-			const canCancelInvite =
-				typeof options.canCancelInvite === "function"
-					? await options.canCancelInvite({
-							inviterUser,
+			const canRejectInvite =
+				typeof options.canRejectInvite === "function"
+					? await options.canRejectInvite({
+							inviteeUser,
 							invitation,
 							ctx,
 						})
-					: options.canCancelInvite;
+					: options.canRejectInvite;
 
-			if (!canCancelInvite) {
+			if (!canRejectInvite) {
 				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-					errorCode: "INSUFFICIENT_PERMISSIONS",
+					message: ERROR_CODES.CANT_REJECT_INVITE,
+					errorCode: "CANT_REJECT_INVITE",
 				});
 			}
 
-			await options.inviteHooks?.beforeCancelInvite?.({ ctx, invitation });
+			await options.inviteHooks?.beforeRejectInvite?.({ ctx, invitation });
 
 			await adapter.deleteInviteUses(invitation.id);
 			await adapter.deleteInvitation(token);
 
-			await options.inviteHooks?.afterCancelInvite?.({ ctx, invitation });
+			await options.inviteHooks?.afterRejectInvite?.({ ctx, invitation });
 
 			return ctx.json({
 				status: true,
-				message: "Invite cancelled successfully",
+				message: "Invite rejected successfully",
 			});
 		},
 	);

@@ -433,25 +433,33 @@ test("activate invite callback hooks run in the correct order with the expected 
 
 	expect(mock.beforeAcceptInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/:token",
-			method: "GET",
-			params: expect.objectContaining({ token: tokenValue }),
-			query: expect.objectContaining({
-				callbackURL: "/auth/sign-in",
+			ctx: expect.objectContaining({
+				path: "/invite/:token",
+				method: "GET",
+				params: expect.objectContaining({ token: tokenValue }),
+				query: expect.objectContaining({
+					callbackURL: "/auth/sign-in",
+				}),
+				headers: expect.any(Headers),
 			}),
-			headers: expect.any(Headers),
-		}),
-		expect.objectContaining({
-			email: invitedUser.email,
-			name: invitedUser.name,
-			role: invitedUser.role,
+			invitedUser: expect.objectContaining({
+				email: invitedUser.email,
+				name: invitedUser.name,
+				role: invitedUser.role,
+			}),
 		}),
 	);
 	expect(mock.afterAcceptInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/:token",
-		}),
-		expect.objectContaining({
+			ctx: expect.objectContaining({
+				path: "/invite/:token",
+				method: "GET",
+				params: expect.objectContaining({ token: tokenValue }),
+				query: expect.objectContaining({
+					callbackURL: "/auth/sign-in",
+				}),
+				headers: expect.any(Headers),
+			}),
 			invitation: expect.objectContaining({
 				id: expect.any(String),
 				token: tokenValue,

@@ -270,29 +270,36 @@ test("cancel invite hooks run in the correct order with the expected arguments",
 
 	expect(mock.beforeCancelInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/cancel",
-			method: "POST",
-			body: expect.objectContaining({ token }),
-			headers: expect.any(Headers),
-		}),
-		expect.objectContaining({
-			id: expect.any(String),
-			token,
-			role: "user",
-			createdAt: expect.any(Date),
-			expiresAt: expect.any(Date),
+			ctx: expect.objectContaining({
+				path: "/invite/cancel",
+				method: "POST",
+				body: expect.objectContaining({ token }),
+				headers: expect.any(Headers),
+			}),
+			invitation: expect.objectContaining({
+				id: expect.any(String),
+				token,
+				role: "user",
+				createdAt: expect.any(Date),
+				expiresAt: expect.any(Date),
+			}),
 		}),
 	);
 	expect(mock.afterCancelInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/cancel",
-		}),
-		expect.objectContaining({
-			id: expect.any(String),
-			token,
-			role: "user",
-			createdAt: expect.any(Date),
-			expiresAt: expect.any(Date),
+			ctx: expect.objectContaining({
+				path: "/invite/cancel",
+				method: "POST",
+				body: expect.objectContaining({ token }),
+				headers: expect.any(Headers),
+			}),
+			invitation: expect.objectContaining({
+				id: expect.any(String),
+				token,
+				role: "user",
+				createdAt: expect.any(Date),
+				expiresAt: expect.any(Date),
+			}),
 		}),
 	);
 });

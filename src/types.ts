@@ -10,8 +10,6 @@ export type InviteOptions = {
 	getDate?: () => Date;
 	/**
 	 * A function that runs before a user creates an invite
-	 * @param invitedUser The role and optionally email of the user to invited user
-	 * @param inviterUser The full user with role of the user that created the invite
 	 *
 	 * @example ```ts
 	 * async canCreateInvite({ ctx }) {
@@ -34,7 +32,6 @@ export type InviteOptions = {
 		| boolean;
 	/**
 	 * A function that runs before a user accepts an invite
-	 * @param user The user object with the role
 	 *
 	 * @example ```ts
 	 * async canAcceptInvite({ ctx }) {
@@ -62,7 +59,22 @@ export type InviteOptions = {
 	canCancelInvite?:
 		| ((data: {
 				inviterUser: UserWithRole;
-				invite: InviteTypeWithId;
+				invitation: InviteTypeWithId;
+				ctx: GenericEndpointContext;
+		  }) => Promise<boolean> | boolean)
+		| boolean;
+	/**
+	 * A function that runs before a user rejects an invite.
+	 *
+	 * Note: regardless of this option, only the invitee (user whose email
+	 * matches the invite email for private invites) can reject it.
+	 *
+	 * @default true
+	 */
+	canRejectInvite?:
+		| ((data: {
+				inviteeUser: UserWithRole;
+				invitation: InviteTypeWithId;
 				ctx: GenericEndpointContext;
 		  }) => Promise<boolean> | boolean)
 		| boolean;
@@ -75,6 +87,7 @@ export type InviteOptions = {
 	 * - Token: () => generateId(24)
 	 * - Code: () => generateRandomString(6, "0-9", "A-Z")
 	 * - Custom: generateToken(invitedUser) (needs options.generateToken)
+	 *
 	 * @default token
 	 */
 	defaultTokenType?: TokensType;
@@ -187,37 +200,83 @@ export type InviteOptions = {
 	 */
 	schema?: InferOptionSchema<InviteSchema>;
 	/**
-	 *
+	 * Hooks for the invite plugin
 	 */
 	inviteHooks?: {
-		beforeCreateInvite?: (ctx: GenericEndpointContext) => Promise<void> | void;
-		afterCreateInvite?: (
-			ctx: GenericEndpointContext,
-			invitation: InviteTypeWithId,
-		) => Promise<void> | void;
-		beforeAcceptInvite?: (
-			ctx: GenericEndpointContext,
-			invitedUser: UserWithRole,
-		) =>
+		/**
+		 * A function that runs before a user creates an invite
+		 */
+		beforeCreateInvite?: (data: {
+			ctx: GenericEndpointContext;
+		}) => Promise<void> | void;
+		/**
+		 * A function that runs after a user creates an invite
+		 */
+		afterCreateInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitation: InviteTypeWithId;
+		}) => Promise<void> | void;
+		/**
+		 * A function that runs before a user accepts an invite
+		 *
+		 * You can return a user object to override the invited user.
+		 *
+		 * @example
+		 * ```ts
+		 * beforeAcceptInvite: async ({ invitedUser }) => {
+		 * 	return {
+		 * 		user: {
+		 * 			...invitedUser,
+		 * 			name: 'test',
+		 * 		}
+		 * 	}
+		 * }
+		 * ```
+		 */
+		beforeAcceptInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitedUser: UserWithRole;
+		}) =>
 			| Promise<{ user?: UserWithRole }>
 			| Promise<void>
 			| { user?: UserWithRole }
 			| void;
-		afterAcceptInvite?: (
-			ctx: GenericEndpointContext,
-			data: {
-				invitation: InviteTypeWithId;
-				invitedUser: UserWithRole;
-			},
-		) => Promise<void> | void;
-		beforeCancelInvite?: (
-			ctx: GenericEndpointContext,
-			invitation: InviteTypeWithId,
-		) => Promise<void> | void;
-		afterCancelInvite?: (
-			ctx: GenericEndpointContext,
-			invitation: InviteTypeWithId,
-		) => Promise<void> | void;
+		/**
+		 * A function that runs after a user accepts an invite
+		 */
+		afterAcceptInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitation: InviteTypeWithId;
+			invitedUser: UserWithRole;
+		}) => Promise<void> | void;
+		/**
+		 * A function that runs before a user cancels an invite
+		 */
+		beforeCancelInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitation: InviteTypeWithId;
+		}) => Promise<void> | void;
+		/**
+		 * A function that runs after a user cancels an invite
+		 */
+		afterCancelInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitation: InviteTypeWithId;
+		}) => Promise<void> | void;
+		/**
+		 * A function that runs before a user rejects an invite
+		 */
+		beforeRejectInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitation: InviteTypeWithId;
+		}) => Promise<void> | void;
+		/**
+		 * A function that runs after a user rejects an invite
+		 */
+		afterRejectInvite?: (data: {
+			ctx: GenericEndpointContext;
+			invitation: InviteTypeWithId;
+		}) => Promise<void> | void;
 	};
 };
 
@@ -233,6 +292,10 @@ export type NewInviteOptions = MakeRequired<
 	| "defaultTokenType"
 	| "defaultRedirectToSignIn"
 	| "defaultRedirectToSignUp"
+	| "canCreateInvite"
+	| "canAcceptInvite"
+	| "canCancelInvite"
+	| "canRejectInvite"
 >;
 
 export type InviteType = {
@@ -256,7 +319,7 @@ export type TokensType = "token" | "code" | "custom";
 export type afterUpgradeTypes = {
 	shareInviterName: boolean;
 	ctx: GenericEndpointContext;
-	invite: InviteTypeWithId;
+	invitation: InviteTypeWithId;
 	signUp: boolean;
 };
 

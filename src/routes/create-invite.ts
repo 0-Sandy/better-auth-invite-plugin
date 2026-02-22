@@ -85,7 +85,7 @@ export const createInvite = (options: NewInviteOptions) => {
 
 			const adapter = getInviteAdapter(ctx.context, options);
 
-			await options.inviteHooks?.beforeCreateInvite?.(ctx);
+			await options.inviteHooks?.beforeCreateInvite?.({ ctx });
 
 			const invitedUser =
 				inviteType === "private"
@@ -145,7 +145,7 @@ export const createInvite = (options: NewInviteOptions) => {
 					});
 				}
 
-				await options.inviteHooks?.afterCreateInvite?.(ctx, invitation);
+				await options.inviteHooks?.afterCreateInvite?.({ ctx, invitation });
 
 				return ctx.json({
 					status: true,
@@ -161,7 +161,7 @@ export const createInvite = (options: NewInviteOptions) => {
 			const returnToken =
 				senderResponse === "token" ? invitation.token : redirectURL;
 
-			await options.inviteHooks?.afterCreateInvite?.(ctx, invitation);
+			await options.inviteHooks?.afterCreateInvite?.({ ctx, invitation });
 
 			return ctx.json({
 				status: true,

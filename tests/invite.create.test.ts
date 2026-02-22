@@ -403,22 +403,29 @@ test("invite hooks run in the correct order with the expected arguments", async 
 	// Should have been called with the correct arguments
 	expect(mock.beforeCreateInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/create",
-			method: "POST",
-			body: expect.any(Object),
-			headers: expect.any(Headers),
+			ctx: expect.objectContaining({
+				path: "/invite/create",
+				method: "POST",
+				body: expect.any(Object),
+				headers: expect.any(Headers),
+			}),
 		}),
 	);
 	expect(mock.afterCreateInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/create",
-		}),
-		expect.objectContaining({
-			id: expect.any(String),
-			token: expect.any(String),
-			role: "user",
-			createdAt: expect.any(Date),
-			expiresAt: expect.any(Date),
+			ctx: expect.objectContaining({
+				path: "/invite/create",
+				method: "POST",
+				body: expect.any(Object),
+				headers: expect.any(Headers),
+			}),
+			invitation: expect.objectContaining({
+				id: expect.any(String),
+				token: expect.any(String),
+				role: "user",
+				createdAt: expect.any(Date),
+				expiresAt: expect.any(Date),
+			}),
 		}),
 	);
 });

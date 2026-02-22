@@ -59,21 +59,21 @@ export const invitesHook = (options: NewInviteOptions) => {
 
 			const adapter = getInviteAdapter(ctx.context, options);
 
-			const invite = await adapter.findInvitation(inviteToken);
+			const invitation = await adapter.findInvitation(inviteToken);
 
-			if (invite === null) {
+			if (invitation === null) {
 				return;
 			}
 
-			if (invite.expiresAt < options.getDate()) {
+			if (invitation.expiresAt < options.getDate()) {
 				throw ctx.error("BAD_REQUEST", {
 					message: ERROR_CODES.INVALID_OR_EXPIRED_INVITE,
 				});
 			}
 
-			const timesUsed = await adapter.countInvitationUses(invite.id);
+			const timesUsed = await adapter.countInvitationUses(invitation.id);
 
-			if (!(timesUsed < invite.maxUses)) {
+			if (!(timesUsed < invitation.maxUses)) {
 				throw ctx.error("BAD_REQUEST", {
 					message: ERROR_CODES.NO_USES_LEFT_FOR_INVITE,
 				});
@@ -88,10 +88,10 @@ export const invitesHook = (options: NewInviteOptions) => {
 				});
 			}
 
-			const before = await options.inviteHooks?.beforeAcceptInvite?.(
+			const before = await options.inviteHooks?.beforeAcceptInvite?.({
 				ctx,
 				invitedUser,
-			);
+			});
 			if (before?.user) {
 				invitedUser = before.user;
 			}
@@ -108,7 +108,7 @@ export const invitesHook = (options: NewInviteOptions) => {
 
 			await consumeInvite({
 				ctx,
-				invite,
+				invitation,
 				invitedUser,
 				options,
 				userId,
@@ -123,16 +123,17 @@ export const invitesHook = (options: NewInviteOptions) => {
 			// delete the invite cookie
 			expireCookie(ctx, inviteCookie);
 
-			await options.inviteHooks?.afterAcceptInvite?.(ctx, {
-				invitation: invite,
+			await options.inviteHooks?.afterAcceptInvite?.({
+				ctx,
+				invitation,
 				invitedUser,
 			});
 
 			// return { context: ctx };
 			await redirectToAfterUpgrade({
-				shareInviterName: invite.shareInviterName,
+				shareInviterName: invitation.shareInviterName,
 				ctx,
-				invite,
+				invitation,
 				signUp: false,
 			});
 		}),

@@ -7,6 +7,7 @@ import {
 	activateInviteCallback,
 	cancelInvite,
 	createInvite,
+	rejectInvite,
 } from "./routes";
 import { schema } from "./schema";
 import type { InviteOptions } from "./types";
@@ -22,6 +23,7 @@ export const invite = <O extends InviteOptions>(opts: O) => {
 			activateInvite: activateInvite(options),
 			activateInviteCallback: activateInviteCallback(options),
 			cancelInvite: cancelInvite(options),
+			rejectInvite: rejectInvite(options),
 		},
 		hooks: {
 			after: [invitesHook(options)],

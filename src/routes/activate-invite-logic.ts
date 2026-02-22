@@ -26,15 +26,15 @@ export const activateInviteLogic = async ({
 }) => {
 	const adapter = getInviteAdapter(ctx.context, options);
 
-	const invite = await adapter.findInvitation(token);
+	const invitation = await adapter.findInvitation(token);
 
-	if (!invite) {
+	if (!invitation) {
 		throw error("BAD_REQUEST", "Invalid invite token", "INVALID_TOKEN");
 	}
 
-	const timesUsed = await adapter.countInvitationUses(invite.id);
+	const timesUsed = await adapter.countInvitationUses(invitation.id);
 
-	if (!(timesUsed < invite.maxUses)) {
+	if (!(timesUsed < invitation.maxUses)) {
 		throw error(
 			"BAD_REQUEST",
 			"Invite token has already been used",
@@ -42,7 +42,7 @@ export const activateInviteLogic = async ({
 		);
 	}
 
-	if (options.getDate() > invite.expiresAt) {
+	if (options.getDate() > invitation.expiresAt) {
 		throw error("BAD_REQUEST", "Invite token has expired", "INVALID_TOKEN");
 	}
 
@@ -51,17 +51,17 @@ export const activateInviteLogic = async ({
 	let invitedUser = sessionObject?.user as UserWithRole | null;
 
 	if (invitedUser && session) {
-		const before = await options.inviteHooks?.beforeAcceptInvite?.(
+		const before = await options.inviteHooks?.beforeAcceptInvite?.({
 			ctx,
 			invitedUser,
-		);
+		});
 		if (before?.user) {
 			invitedUser = before.user;
 		}
 
 		await consumeInvite({
 			ctx,
-			invite,
+			invitation,
 			invitedUser,
 			options,
 			userId: invitedUser.id,
@@ -73,15 +73,16 @@ export const activateInviteLogic = async ({
 			adapter,
 		});
 
-		await options.inviteHooks?.afterAcceptInvite?.(ctx, {
-			invitation: invite,
+		await options.inviteHooks?.afterAcceptInvite?.({
+			ctx,
+			invitation,
 			invitedUser,
 		});
 
 		return await afterUpgrade({
-			shareInviterName: invite.shareInviterName,
+			shareInviterName: invitation.shareInviterName,
 			ctx,
-			invite,
+			invitation,
 			signUp: true,
 		});
 	}

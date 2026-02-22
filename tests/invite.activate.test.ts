@@ -277,7 +277,6 @@ test("activateInvite uses custom cookie names", async ({ createAuth }) => {
 			...defaultOptions,
 		},
 		advancedOptions: {
-			cookiePrefix: "testtt",
 			cookies: {
 				invite_token: {
 					name: "invite_test",
@@ -533,25 +532,33 @@ test("activate invite hooks run in the correct order with the expected arguments
 
 	expect(mock.beforeAcceptInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/activate",
-			method: "POST",
-			body: expect.objectContaining({
-				token: tokenValue,
-				callbackURL: "/auth/sign-in",
+			ctx: expect.objectContaining({
+				path: "/invite/activate",
+				method: "POST",
+				body: expect.objectContaining({
+					token: tokenValue,
+					callbackURL: "/auth/sign-in",
+				}),
+				headers: expect.any(Headers),
 			}),
-			headers: expect.any(Headers),
-		}),
-		expect.objectContaining({
-			email: invitedUser.email,
-			name: invitedUser.name,
-			role: invitedUser.role,
+			invitedUser: expect.objectContaining({
+				email: invitedUser.email,
+				name: invitedUser.name,
+				role: invitedUser.role,
+			}),
 		}),
 	);
 	expect(mock.afterAcceptInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
-			path: "/invite/activate",
-		}),
-		expect.objectContaining({
+			ctx: expect.objectContaining({
+				path: "/invite/activate",
+				method: "POST",
+				body: expect.objectContaining({
+					token: tokenValue,
+					callbackURL: "/auth/sign-in",
+				}),
+				headers: expect.any(Headers),
+			}),
 			invitation: expect.objectContaining({
 				id: expect.any(String),
 				token: tokenValue,
