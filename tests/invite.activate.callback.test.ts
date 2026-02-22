@@ -221,7 +221,7 @@ test("activateInvite skips login step if already logged in", async ({
 	};
 
 	// Create a new user
-	createUser(invitedUser, db);
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
@@ -318,7 +318,7 @@ test("onInvitationUsed is called with correct payload", async ({
 	const newRole = "admin";
 
 	// Create a new user
-	createUser(invitedUser, db);
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
@@ -393,7 +393,7 @@ test("activate invite callback hooks run in the correct order with the expected 
 	};
 	const newRole = "admin";
 
-	createUser(invitedUser, db);
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
@@ -496,7 +496,7 @@ test("throws error when using different email than invite email", async ({
 	const fakeEmail = "nottherealemail@test.com";
 
 	// Create a new user
-	createUser(invitedUser, db);
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 

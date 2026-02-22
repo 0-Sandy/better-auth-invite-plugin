@@ -207,7 +207,7 @@ test("invitesHook runs after sign-up and triggers invite hooks in correct order"
 	};
 	const newRole = "admin";
 
-	createUser(invitedUser, db);
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 

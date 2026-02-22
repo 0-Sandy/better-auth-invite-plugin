@@ -124,19 +124,17 @@ export const createInvite = (options: NewInviteOptions) => {
 				}
 
 				try {
-					await Promise.resolve(
-						sendFn(
-							{
-								// biome-ignore lint/style/noNonNullAssertion: email is guaranteed to exist for private invites
-								email: email!,
-								name: invitedUser?.user.name,
-								role,
-								url: redirectURLEmail,
-								token: invitation.token,
-								newAccount,
-							},
-							ctx.request,
-						),
+					await sendFn(
+						{
+							// biome-ignore lint/style/noNonNullAssertion: email is guaranteed to exist for private invites
+							email: email!,
+							name: invitedUser?.user.name,
+							role,
+							url: redirectURLEmail,
+							token: invitation.token,
+							newAccount,
+						},
+						ctx.request,
 					);
 				} catch (e) {
 					ctx.context.logger.error("Error sending the invitation email", e);
