@@ -80,8 +80,6 @@ export const test = baseTest.extend<{
 				return testInstance;
 			},
 		);
-
-		database.close();
 	},
 });
 

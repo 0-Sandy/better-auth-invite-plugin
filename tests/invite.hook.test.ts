@@ -70,8 +70,7 @@ test("test invite hook after sign-in/email", async ({ createAuth }) => {
 	expect(error).toBe(null);
 
 	const { path } = await resolveInviteRedirect(client.signIn.email, {
-		email: invitedUser.email,
-		password: invitedUser.password,
+		...invitedUser,
 		fetchOptions: {
 			headers: newHeaders,
 		},
@@ -244,8 +243,7 @@ test("invitesHook runs after sign-up and triggers invite hooks in correct order"
 	});
 
 	await client.signIn.email({
-		email: invitedUser.email,
-		password: invitedUser.password,
+		...invitedUser,
 		fetchOptions: {
 			headers: newHeaders,
 		},

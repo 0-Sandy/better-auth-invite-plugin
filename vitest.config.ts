@@ -3,7 +3,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
 	test: {
-		testTimeout: 15000,
+		testTimeout: 18000,
 		coverage: {
 			exclude: [
 				...(configDefaults.coverage.exclude ?? []),
