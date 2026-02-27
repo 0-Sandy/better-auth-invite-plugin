@@ -18,3 +18,4 @@ biome.json
 .env
 *.tgz
 lefthook.yml
+assets/
