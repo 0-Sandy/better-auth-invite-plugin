@@ -9,6 +9,7 @@ on:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -29,6 +30,7 @@ jobs:
       - run: pnpm lint
 
   typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -46,6 +48,7 @@ jobs:
       - run: pnpm typecheck
 
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -63,6 +66,7 @@ jobs:
       - run: pnpm test
 
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
