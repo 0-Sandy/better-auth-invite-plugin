@@ -137,9 +137,8 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - run: cd package
-
       - name: Release
+        working-directory: package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm dlx semantic-release
