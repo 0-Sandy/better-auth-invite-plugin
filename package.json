@@ -5,7 +5,7 @@
 	"scripts": {
 		"build": "pnpm --filter ./package build",
 		"test": "pnpm --filter ./package test",
-		"typecheck": "tsc --build",
+		"typecheck": "tsc --noEmit",
 		"format": "pnpm --filter ./package format",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --fix --unsafe"
