@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
@@ -43,6 +44,8 @@ export default function RootLayout({
 					<Header />
 
 					{children}
+
+					<Analytics />
 				</Providers>
 			</body>
 		</html>
