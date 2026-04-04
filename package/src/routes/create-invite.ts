@@ -65,11 +65,7 @@ export const createInvite = (options: NewInviteOptions) => {
 
 			const invitations: InviteTypeWithId[] = [];
 
-			if (
-				isPrivate &&
-				!options.sendUserInvitation &&
-				!options.sendUserRoleUpgrade
-			) {
+			if (isPrivate && !options.sendUserInvitation) {
 				ctx.context.logger.warn(
 					"Invitation email is not enabled. Pass `sendUserInvitation` to the plugin options to enable it.",
 				);
@@ -103,8 +99,6 @@ export const createInvite = (options: NewInviteOptions) => {
 			const adapter = getInviteAdapter(ctx.context, options);
 
 			await options.inviteHooks?.beforeCreateInvite?.({ ctx });
-
-			let sendedRoleUpgradeWarning = false;
 
 			// Loop for creating and sending invites
 			for (const email of targets) {
@@ -141,18 +135,6 @@ export const createInvite = (options: NewInviteOptions) => {
 
 				// If the invite is private, send the user an email
 				if (isPrivate) {
-					// If options.sendUserRoleUpgrade exists, we send a waring only 1 time
-					if (
-						!newAccount &&
-						options.sendUserRoleUpgrade &&
-						!sendedRoleUpgradeWarning
-					) {
-						ctx.context.logger.warn(
-							"`sendUserRoleUpgrade` is deprecated. Use `sendUserInvitation` instead (it now receives `newAccount` to know if it's a role upgrade invite or a user creation invite).",
-						);
-						sendedRoleUpgradeWarning = true;
-					}
-
 					const redirectURLEmail = createRedirectURL({
 						ctx,
 						invitation,
@@ -160,18 +142,15 @@ export const createInvite = (options: NewInviteOptions) => {
 						customInviteUrl,
 					});
 
-					const sendFn = newAccount
-						? options.sendUserInvitation
-						: (options.sendUserRoleUpgrade ?? options.sendUserInvitation);
-
-					if (!sendFn) {
+					// This should never happen because we check it at the beginning of the function, but we check it again to make TypeScript happy
+					if (!options.sendUserInvitation) {
 						throw ctx.error("INTERNAL_SERVER_ERROR", {
 							message: "Invitation email is not enabled",
 						});
 					}
 
 					try {
-						await sendFn(
+						await options.sendUserInvitation(
 							{
 								email,
 								name: invitedUser?.user.name,

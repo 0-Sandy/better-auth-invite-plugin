@@ -158,23 +158,6 @@ export type InviteOptions = {
 		request?: Request,
 	) => Promise<void> | void;
 	/**
-	 * Send user role upgrade email
-	 *
-	 * @deprecated Use `sendUserInvitation` instead.
-	 */
-	sendUserRoleUpgrade?: (
-		data: {
-			email: string;
-			role: string;
-			url: string;
-			token: string;
-		},
-		/**
-		 * The request object
-		 */
-		request?: Request,
-	) => Promise<void> | void;
-	/**
 	 * Number of seconds the invitation token is
 	 * valid for.
 	 * @default 1 hour (60 * 60)

@@ -12,55 +12,6 @@ beforeEach(() => {
 
 // Activate Invite Tests
 
-test("test warn when using sendUserRoleUpgrade", async ({ createAuth }) => {
-	const { client, db, signInWithTestUser, logger } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-			sendUserInvitation: mock.sendUserInvitation,
-			sendUserRoleUpgrade: mock.sendUserRoleUpgrade,
-		},
-	});
-
-	const warnSpy = vi.spyOn(logger, "warn");
-
-	const invitedUser = {
-		email: "test@email.com",
-		role: "user",
-		name: "Test User",
-		password: "12345678",
-	};
-
-	// Create a new user
-	await createUser(invitedUser, db);
-
-	const { headers } = await signInWithTestUser();
-
-	// This should be a user creation, because that user doesn't exist
-	const { error } = await client.invite.create({
-		role: "user",
-		email: invitedUser.email,
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(error).toBe(null);
-
-	expect(mock.sendUserRoleUpgrade).toHaveBeenCalledOnce();
-	expect(mock.sendUserRoleUpgrade).toHaveBeenCalledWith(
-		expect.objectContaining({
-			email: invitedUser.email,
-			name: invitedUser.name,
-			role: "user",
-		}),
-		expect.anything(),
-	);
-
-	expect(warnSpy).toHaveBeenCalledWith(
-		"`sendUserRoleUpgrade` is deprecated. Use `sendUserInvitation` instead (it now receives `newAccount` to know if it's a role upgrade invite or a user creation invite).",
-	);
-});
-
 test("uses sendUserInvitation when invited user does not exist", async ({
 	createAuth,
 }) => {
@@ -96,7 +47,7 @@ test("uses sendUserInvitation when invited user does not exist", async ({
 	);
 });
 
-test("uses sendUserRoleUpgrade when invited user exists", async ({
+test("uses sendUserInvitation when invited user exists", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser } = await createAuth({
@@ -129,7 +80,7 @@ test("uses sendUserRoleUpgrade when invited user exists", async ({
 
 	expect(error).toBe(null);
 
-	// The sendUserRoleUpgradeMock should have been called
+	// The sendUserInvitationMock should have been called
 	expect(mock.sendUserInvitation).toHaveBeenCalledOnce();
 	expect(mock.sendUserInvitation).toHaveBeenCalledWith(
 		expect.objectContaining({
