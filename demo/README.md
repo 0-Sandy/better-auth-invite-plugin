@@ -14,7 +14,7 @@
 
 ---
 
-> Better Invite Starter code is in the [Better Invite Monorepo](https://github.com/better-invite/better-invite/tree/main/demo) and in a separate [Better Invite Starter Repo](https://github.com/better-invite/better-invite-starter/tree/main)
+> Better Invite Starter code is available on the [Better Invite Monorepo](https://github.com/better-invite/better-invite/tree/main/demo) and in a separate [Better Invite Starter Repo](https://github.com/better-invite/better-invite-starter/tree/main)
 
 ## Installation
 
