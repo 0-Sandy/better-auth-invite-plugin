@@ -183,4 +183,16 @@ console.log("Invite activated successfully.");
 
  - Inspired in the [invite system](https://github.com/bard/better-auth-invite) from Max.
 
+---
+
+<div align="center">
+  <p>Please consider sponsoring us</p>
+  
+  <a href="https://www.patreon.com/cw/betterinvite/membership">
+    <img src="https://raw.githubusercontent.com/better-invite/.github/refs/heads/main/profile/sponsor-us.svg" alt="Sponsor us :)" />
+  </a>
+</div>
+
+---
+
 > This project is not associated with Better Auth
