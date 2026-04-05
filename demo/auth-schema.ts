@@ -13,6 +13,10 @@ export const users = pgTable("users", {
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
 	twoFactorEnabled: boolean("two_factor_enabled").default(false),
+	role: text("role"),
+	banned: boolean("banned").default(false),
+	banReason: text("ban_reason"),
+	banExpires: timestamp("ban_expires"),
 });
 
 export const sessions = pgTable(
@@ -30,6 +34,7 @@ export const sessions = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		impersonatedBy: text("impersonated_by"),
 	},
 	(table) => [index("sessions_userId_idx").on(table.userId)],
 );
@@ -74,14 +79,21 @@ export const verifications = pgTable(
 	(table) => [index("verifications_identifier_idx").on(table.identifier)],
 );
 
-export const twoFactors = pgTable("two_factors", {
-	id: text("id").primaryKey(),
-	secret: text("secret").notNull(),
-	backupCodes: text("backup_codes").notNull(),
-	userId: text("user_id")
-		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
-});
+export const twoFactors = pgTable(
+	"two_factors",
+	{
+		id: text("id").primaryKey(),
+		secret: text("secret").notNull(),
+		backupCodes: text("backup_codes").notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		index("twoFactors_secret_idx").on(table.secret),
+		index("twoFactors_userId_idx").on(table.userId),
+	],
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),

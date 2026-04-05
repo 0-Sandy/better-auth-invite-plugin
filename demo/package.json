@@ -9,6 +9,7 @@
 		"lint": "biome check",
 		"format": "biome format --write",
 		"check-types": "tsc --noEmit",
+		"generate": "pnpx @better-auth/cli generate --config src/lib/auth.ts --output ./auth-schema.ts --yes",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
