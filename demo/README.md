@@ -43,6 +43,8 @@ npx drizzle-kit migrate
 
 ## Features:
 
+[Better Invite](https://www.better-invite.com)
+
 [Better Auth](https://better-auth.com)
 
 [Better Auth UI](https://better-auth-ui.com)

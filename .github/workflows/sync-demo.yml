@@ -7,6 +7,7 @@ on:
       - beta
     paths:
       - 'demo/**'
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -35,9 +36,40 @@ jobs:
           sed -i 's|> Better Invite Starter code is also available on a separate \[repository\](https://github.com/better-invite/better-invite-starter/tree/main)|> Better Invite Starter code is also available on the \[Better Invite monorepo\](https://github.com/better-invite/better-invite/tree/main/demo)|' README.md
 
           git add README.md
+
+      - name: Add FUNDING.yml
+        run: |
+          mkdir -p .github
+          echo "patreon: betterinvite" > .github/FUNDING.yml
+
+          git add .github/FUNDING.yml
+
+      - name: Add CODEOWNERS
+        run: |
+          mkdir -p .github
+          printf "# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners\n\n* @0-Sandy\n" > .github/CODEOWNERS
+
+          git add .github/CODEOWNERS
+          git commit --amend --no-edit
+      - name: Apply modifications
+        run: |
+          git checkout demo-branch
+
+          # Update README
+          sed -i 's|> Better Invite Starter code is also available on a separate \[repository\](https://github.com/better-invite/better-invite-starter/tree/main)|> Better Invite Starter code is also available on the \[Better Invite monorepo\](https://github.com/better-invite/better-invite/tree/main/demo)|' README.md
+
+          # Create .github files
+          mkdir -p .github
+
+          echo "patreon: betterinvite" > .github/FUNDING.yml
+
+          printf "# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners\n\n* @0-Sandy" > .github/CODEOWNERS
+
+          # Commit changes
+          git add .
           git commit --amend --no-edit
 
-      - name: Push to template repo (same branch)
+      - name: Push to template repo
         run: |
           git remote add template https://x-access-token:${{ secrets.TEMPLATE_REPO_TOKEN }}@github.com/better-invite/better-invite-starter.git
           git push template demo-branch:${{ github.ref_name }} --force
