@@ -22,35 +22,13 @@ jobs:
 
       - name: Setup git identity
         run: |
-          git config user.name "0-Sandy"
-          git config user.email "github@sandy00.aleeas.com"
+          git config user.name "better-invite-bot[bot]"
+          git config user.email "12345678+better-invite-bot[bot]@users.noreply.github.com"
 
       - name: Create subtree branch
         run: |
           git subtree split --prefix=demo -b demo-branch
-      
-      - name: Update README link
-        run: |
-          git checkout demo-branch
-
-          sed -i 's|> Better Invite Starter code is also available on a separate \[repository\](https://github.com/better-invite/better-invite-starter/tree/main)|> Better Invite Starter code is also available on the \[Better Invite monorepo\](https://github.com/better-invite/better-invite/tree/main/demo)|' README.md
-
-          git add README.md
-
-      - name: Add FUNDING.yml
-        run: |
-          mkdir -p .github
-          echo "patreon: betterinvite" > .github/FUNDING.yml
-
-          git add .github/FUNDING.yml
-
-      - name: Add CODEOWNERS
-        run: |
-          mkdir -p .github
-          printf "# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners\n\n* @0-Sandy\n" > .github/CODEOWNERS
-
-          git add .github/CODEOWNERS
-          git commit --amend --no-edit
+        
       - name: Apply modifications
         run: |
           git checkout demo-branch
@@ -61,9 +39,8 @@ jobs:
           # Create .github files
           mkdir -p .github
 
-          echo "patreon: betterinvite" > .github/FUNDING.yml
-
-          printf "# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners\n\n* @0-Sandy" > .github/CODEOWNERS
+          cp ../demo/.github/FUNDING.yml .github/FUNDING.yml
+          cp ../demo/.github/CODEOWNERS .github/CODEOWNERS
 
           # Commit changes
           git add .
