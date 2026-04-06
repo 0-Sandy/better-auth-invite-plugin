@@ -31,6 +31,9 @@ export function Providers({ children }: { children: ReactNode }) {
 				deleteUser={{
 					verification: true,
 				}}
+				social={{
+					providers: ["github", "discord"],
+				}}
 			>
 				{children}
 

@@ -26,5 +26,15 @@ export const auth = betterAuth({
 		sendVerificationEmail: async ({ user, url }) =>
 			void sendEmailVerification({ name: user.name, email: user.email, url }),
 	},
+	socialProviders: {
+		github: {
+			clientId: process.env.GITHUB_CLIENT_ID as string,
+			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+		},
+		discord: {
+			clientId: process.env.DISCORD_CLIENT_ID as string,
+			clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+		},
+	},
 	plugins: [twoFactor(), adminPlugin()],
 });
