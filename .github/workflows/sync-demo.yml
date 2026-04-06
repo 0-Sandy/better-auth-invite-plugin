@@ -23,7 +23,7 @@ jobs:
       - name: Setup git identity
         run: |
           git config user.name "better-invite-bot[bot]"
-          git config user.email "12345678+better-invite-bot[bot]@users.noreply.github.com"
+          git config user.email "better-invite-bot[bot]@users.noreply.github.com"
 
       - name: Create subtree branch
         run: |
