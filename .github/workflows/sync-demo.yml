@@ -53,6 +53,10 @@ jobs:
 
           # Copy files from monorepo
           git --work-tree=. checkout main -- .github/CODEOWNERS
+          git --work-tree=. checkout main -- LICENSE
+          git --work-tree=. checkout main -- biome.json
+
+          sed -i '1s|{|{\n  "$comment": "This file was copied from the Better Invite monorepo. It may not work as expected in this template. Modify as needed.",|' biome.json
 
           # Commit changes
           git add .

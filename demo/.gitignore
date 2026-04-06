@@ -1,0 +1,41 @@
+# deps
+node_modules
+
+# environment
+.env
+.env*.local
+
+# logs
+.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# caches
+.eslintcache
+.pnp
+.pnp.js
+
+# build & generated
+/build
+/out
+.next
+coverage
+.source
+*.tsbuildinfo
+
+migrations
+
+# misc
+.DS_Store
+*.pem
+*.tgz
+
+# project
+/.project
+
+# vercel
+.vercel
+
+# next.js
+next-env.d.ts
