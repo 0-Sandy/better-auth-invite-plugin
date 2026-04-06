@@ -36,7 +36,7 @@ jobs:
           # Update README
 
           # Update separate repository reference
-          sed -i 's|> Better Invite Starter code is also available on a separate \[repository\](https://github.com/better-invite/better-invite-starter/tree/main)|> Better Invite Starter code is also available on the \[Better Invite monorepo\](https://github.com/better-invite/better-invite/tree/main/demo)|' README.md
+          sed -i 's|> Better Invite Starter code is also available on a separate \[repository\](https://github.com/better-invite/better-invite-starter/tree/main)|> Better Invite Starter code is also available on the \[Better Invite monorepo\](https://github.com/better-invite/better-invite/tree/main/demo)\n> Please open any issues or pull requests on the \[Better Invite monorepo\](https://github.com/better-invite/better-invite)|' README.md
           
           # Update title
           perl -0777 -pe 's|<h1 align="center">\s*Better Invite Starter\s*</h1>|<h1 align="center">\n  Better Invite Starter Template\n</h1>|s' README.md > README.tmp && mv README.tmp README.md
