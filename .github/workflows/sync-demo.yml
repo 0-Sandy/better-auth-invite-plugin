@@ -43,10 +43,6 @@ jobs:
           git --work-tree=. checkout main -- .github/FUNDING.yml
           git --work-tree=. checkout main -- .github/CODEOWNERS
 
-          # Copy files from monorepo
-          cp FUNDING.yml .github/FUNDING.yml
-          cp CODEOWNERS .github/CODEOWNERS
-
           # Commit changes
           git add .
           git commit --amend --no-edit
