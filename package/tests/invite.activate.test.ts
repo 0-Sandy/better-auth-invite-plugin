@@ -794,7 +794,7 @@ test("test activateInvite with custom schema", async ({ createAuth }) => {
 	expect(newInvite).not.toBeNull();
 });
 
-test("test activateInvite with infinite maxUses", async ({ createAuth }) => {
+test("test activateInvite with infiniteMaxUses", async ({ createAuth }) => {
 	const { client, db, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
@@ -829,7 +829,7 @@ test("test activateInvite with infinite maxUses", async ({ createAuth }) => {
 		throw new Error("Invite not found");
 	}
 
-	expect(invite.maxUses).toBe(Infinity);
+	expect(invite.infinityMaxUses).toBe(true);
 
 	const inviteId = invite.id;
 

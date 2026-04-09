@@ -79,7 +79,7 @@ export const invitesHooks = (options: NewInviteOptions) => {
 
 					const timesUsed = await adapter.countInvitationUses(invitation.id);
 
-					if (!(timesUsed < invitation.maxUses)) {
+					if (!invitation.infinityMaxUses && timesUsed >= invitation.maxUses) {
 						throw APIError.from(
 							"BAD_REQUEST",
 							ERROR_CODES.NO_USES_LEFT_FOR_INVITE,

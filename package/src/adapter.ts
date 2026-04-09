@@ -38,8 +38,12 @@ export const getInviteAdapter = (
 			const expiresAt = getDate(payload.expiresIn, "sec");
 			const token = generateToken();
 			const now = options.getDate();
-			const newMaxUses =
-				invite.maxUses ?? options.defaultMaxUses ?? (isPrivate ? 1 : Infinity);
+			const hasExplicitMaxUses =
+				invite.maxUses !== undefined && invite.maxUses !== null;
+
+			const newMaxUses = invite.maxUses ?? options.defaultMaxUses;
+
+			const isUnlimited = !isPrivate && !hasExplicitMaxUses;
 
 			return baseAdapter.create<InviteTypeWithId>({
 				model: inviteTable,
@@ -48,7 +52,8 @@ export const getInviteAdapter = (
 					createdByUserId: user.id,
 					createdAt: now,
 					expiresAt,
-					maxUses: newMaxUses,
+					maxUses: isUnlimited ? 1 : (newMaxUses ?? 1),
+					infinityMaxUses: isUnlimited,
 					redirectToAfterUpgrade: payload.redirectToAfterUpgrade,
 					shareInviterName: payload.shareInviterName,
 					emails: normalizeEmails(invite.email),

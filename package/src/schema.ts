@@ -7,6 +7,7 @@ export const schema = {
 			createdAt: { type: "date" },
 			expiresAt: { type: "date", required: true },
 			maxUses: { type: "number", required: true },
+			infinityMaxUses: { type: "boolean", required: true, defaultValue: false },
 			createdByUserId: {
 				type: "string",
 				references: { model: "user", field: "id", onDelete: "set null" },
