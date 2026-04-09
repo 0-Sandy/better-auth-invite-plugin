@@ -1,21 +1,23 @@
 import type { GenericEndpointContext } from "better-auth";
-import { createAuthEndpoint, originCheck } from "better-auth/api";
+import {
+	APIError,
+	createAuthEndpoint,
+	getSessionFromCtx,
+	originCheck,
+} from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { getInviteAdapter } from "../adapter";
-import { INVITE_COOKIE_NAME } from "../constants";
+import { ERROR_CODES, INVITE_COOKIE_NAME } from "../constants";
 import type { NewInviteOptions } from "../types";
-import { consumeInvite, optionalSessionMiddleware } from "../utils";
+import { consumeInvite } from "../utils";
 
 export const activateInvite = (options: NewInviteOptions) => {
 	return createAuthEndpoint(
 		"/invite/activate",
 		{
 			method: "POST",
-			use: [
-				optionalSessionMiddleware,
-				originCheck((ctx) => ctx.body.callbackURL),
-			],
+			use: [originCheck((ctx) => ctx.body.callbackURL)],
 			body: z.object({
 				/**
 				 * Where to redirect the user after sing in/up
@@ -98,29 +100,23 @@ export const activateInviteLogic = async (
 	const invitation = await adapter.findInvitation(body.token);
 
 	if (!invitation) {
-		throw ctx.error("BAD_REQUEST", {
-			message: "Invalid invite token",
-			code: "INVALID_TOKEN",
-		});
+		throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 	}
 
 	const timesUsed = await adapter.countInvitationUses(invitation.id);
 
 	if (!(timesUsed < invitation.maxUses)) {
-		throw ctx.error("BAD_REQUEST", {
-			message: "Invite token has already been used",
-			code: "INVALID_TOKEN",
-		});
+		throw APIError.from(
+			"BAD_REQUEST",
+			ERROR_CODES.INVITE_TOKEN_HAS_ALREADY_BEEN_USED,
+		);
 	}
 
 	if (options.getDate() > invitation.expiresAt) {
-		throw ctx.error("BAD_REQUEST", {
-			message: "Invite token has expired",
-			code: "INVALID_TOKEN",
-		});
+		throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_OR_EXPIRED_INVITE);
 	}
 
-	const sessionObject = ctx.context.session;
+	const sessionObject = await getSessionFromCtx(ctx);
 	const session = sessionObject?.session;
 	let invitedUser = sessionObject?.user as UserWithRole | null;
 

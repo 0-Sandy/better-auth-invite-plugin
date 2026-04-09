@@ -1,4 +1,8 @@
-import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthEndpoint,
+	sessionMiddleware,
+} from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { getInviteAdapter } from "../adapter";
@@ -69,9 +73,10 @@ export const createInvite = (options: NewInviteOptions) => {
 				ctx.context.logger.warn(
 					"Invitation email is not enabled. Pass `sendUserInvitation` to the plugin options to enable it.",
 				);
-				throw ctx.error("INTERNAL_SERVER_ERROR", {
-					message: "Invitation email is not enabled",
-				});
+				throw APIError.from(
+					"INTERNAL_SERVER_ERROR",
+					ERROR_CODES.INVITATION_EMAIL_NOT_ENABLED,
+				);
 			}
 
 			const basicInvitedUser = { email, role };
@@ -90,10 +95,10 @@ export const createInvite = (options: NewInviteOptions) => {
 					: canCreateInviteOption;
 
 			if (!canCreateInvite) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-					errorCode: "INSUFFICIENT_PERMISSIONS",
-				});
+				throw APIError.from(
+					"BAD_REQUEST",
+					ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+				);
 			}
 
 			const adapter = getInviteAdapter(ctx.context, options);
@@ -144,9 +149,10 @@ export const createInvite = (options: NewInviteOptions) => {
 
 					// This should never happen because we check it at the beginning of the function, but we check it again to make TypeScript happy
 					if (!options.sendUserInvitation) {
-						throw ctx.error("INTERNAL_SERVER_ERROR", {
-							message: "Invitation email is not enabled",
-						});
+						throw APIError.from(
+							"INTERNAL_SERVER_ERROR",
+							ERROR_CODES.INVITATION_EMAIL_NOT_ENABLED,
+						);
 					}
 
 					try {
@@ -163,9 +169,10 @@ export const createInvite = (options: NewInviteOptions) => {
 						);
 					} catch (e) {
 						ctx.context.logger.error("Error sending the invitation email: ", e);
-						throw ctx.error("INTERNAL_SERVER_ERROR", {
-							message: ERROR_CODES.ERROR_SENDING_THE_INVITATION_EMAIL,
-						});
+						throw APIError.from(
+							"INTERNAL_SERVER_ERROR",
+							ERROR_CODES.ERROR_SENDING_THE_INVITATION_EMAIL,
+						);
 					}
 				}
 			}

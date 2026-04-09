@@ -134,8 +134,8 @@ test("non-creator cannot cancel invite", async ({ createAuth }) => {
 	expect(cancelled.data).toBeNull();
 	expect(cancelled.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INSUFFICIENT_PERMISSIONS",
-			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+			code: "INSUFFICIENT_PERMISSIONS",
+			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -171,8 +171,8 @@ test("cancelling with an invalid token returns error", async ({
 	expect(cancelled.data).toBeNull();
 	expect(cancelled.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INVALID_TOKEN",
-			message: ERROR_CODES.INVALID_TOKEN,
+			code: "INVALID_TOKEN",
+			message: ERROR_CODES.INVALID_TOKEN.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -217,8 +217,8 @@ test("canCancelInvite is called and can block cancellation", async ({
 	expect(cancelled.data).toBeNull();
 	expect(cancelled.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INSUFFICIENT_PERMISSIONS",
-			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+			code: "INSUFFICIENT_PERMISSIONS",
+			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -274,8 +274,8 @@ test("canCancelInvite supports Permissions objects", async ({ createAuth }) => {
 	expect(res.data).toBeNull();
 	expect(res.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INSUFFICIENT_PERMISSIONS",
-			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+			code: "INSUFFICIENT_PERMISSIONS",
+			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),

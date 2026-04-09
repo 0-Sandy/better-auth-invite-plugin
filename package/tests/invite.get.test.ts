@@ -196,8 +196,8 @@ test("private invite returns INVALID_TOKEN for non-invitee", async ({
 	expect(res.data).toBeNull();
 	expect(res.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INVALID_TOKEN",
-			message: ERROR_CODES.INVALID_TOKEN,
+			code: "INVALID_TOKEN",
+			message: ERROR_CODES.INVALID_TOKEN.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -246,8 +246,8 @@ test("private invite returns INVALID_TOKEN when unauthenticated", async ({
 	expect(res.data).toBeNull();
 	expect(res.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INVALID_TOKEN",
-			message: ERROR_CODES.INVALID_TOKEN,
+			code: "INVALID_TOKEN",
+			message: ERROR_CODES.INVALID_TOKEN.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -272,8 +272,8 @@ test("getInvite with invalid token returns INVALID_TOKEN", async ({
 	expect(res.data).toBeNull();
 	expect(res.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INVALID_TOKEN",
-			message: ERROR_CODES.INVALID_TOKEN,
+			code: "INVALID_TOKEN",
+			message: ERROR_CODES.INVALID_TOKEN.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),

@@ -1,6 +1,7 @@
+import { defineErrorCodes } from "better-auth";
 import type { TokensType } from "./types";
 
-export const ERROR_CODES = {
+export const ERROR_CODES = defineErrorCodes({
 	USER_NOT_LOGGED_IN: "User must be logged in to create an invite",
 	INSUFFICIENT_PERMISSIONS:
 		"User does not have sufficient permissions to create invite",
@@ -14,7 +15,9 @@ export const ERROR_CODES = {
 	INVITER_NOT_FOUND: "Inviter not found",
 	ERROR_SENDING_THE_INVITATION_EMAIL: "Error sending the invitation email",
 	ADMIN_PLUGIN_IS_NOT_SET_UP: "Admin plugin is not set-up",
-} as const;
+	INVITATION_EMAIL_NOT_ENABLED: "Invitation email is not enabled",
+	INVITE_TOKEN_HAS_ALREADY_BEEN_USED: "Invite token has already been used",
+});
 
 export const Tokens: TokensType[] = ["token", "code", "custom"];
 

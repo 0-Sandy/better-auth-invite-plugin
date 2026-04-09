@@ -1,12 +1,13 @@
 import {
 	type BetterAuthClientPlugin,
-	BetterAuthError,
 	type betterAuth,
+	resolveBaseURL,
 	type Session,
 	type User,
 } from "better-auth";
 import { setCookieToHeader } from "better-auth/cookies";
-import { getAdapter, getMigrations } from "better-auth/db";
+import { getAdapter } from "better-auth/db/adapter";
+import { getMigrations } from "better-auth/db/migration";
 import {
 	type BetterFetchOption,
 	createAuthClient,
@@ -142,11 +143,14 @@ export async function getTestInstance<C extends ClientOptions>(
 		return auth.handler(req);
 	};
 
+	const ctx = await auth.$context;
+	const logger = ctx.logger;
+
 	const client = createAuthClient({
 		...(config?.clientOptions as C),
-		baseURL: getBaseURL(
-			opts.baseURL || `http://localhost:${config?.port || 3000}`,
-			opts.basePath || "/api/auth",
+		baseURL: resolveBaseURL(
+			opts.baseURL ?? `http://localhost:${config?.port || 3000}`,
+			opts.basePath ?? "/api/auth",
 		),
 		fetchOptions: {
 			customFetchImpl,
@@ -173,9 +177,6 @@ export async function getTestInstance<C extends ClientOptions>(
 		console.log("Database successfully reset.");
 	}
 
-	const ctx = await auth.$context;
-	const logger = ctx.logger;
-
 	return {
 		client: client as unknown as ReturnType<typeof createAuthClient<C>>,
 		testUser,
@@ -189,50 +190,6 @@ export async function getTestInstance<C extends ClientOptions>(
 		auth,
 		logger,
 	};
-}
-
-// Based in https://github.com/ping-maxwell/better-auth-kit/blob/main/packages/libraries/tests/src/utils/url.ts
-
-function checkHasPath(url: string): boolean {
-	try {
-		const parsedUrl = new URL(url);
-		return parsedUrl.pathname !== "/";
-	} catch {
-		throw new BetterAuthError(
-			`Invalid base URL: ${url}. Please provide a valid base URL.`,
-		);
-	}
-}
-
-function withPath(url: string, path = "/api/auth") {
-	const hasPath = checkHasPath(url);
-	if (hasPath) {
-		return url;
-	}
-	path = path.startsWith("/") ? path : `/${path}`;
-	return `${url.replace(/\/+$/, "")}${path}`;
-}
-
-export function getBaseURL(url?: string, path?: string) {
-	if (url) {
-		return withPath(url, path);
-	}
-	const fromEnv =
-		env.BETTER_AUTH_URL ||
-		env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-		env.PUBLIC_BETTER_AUTH_URL ||
-		env.NUXT_PUBLIC_BETTER_AUTH_URL ||
-		env.NUXT_PUBLIC_AUTH_URL ||
-		(env.BASE_URL !== "/" ? env.BASE_URL : undefined);
-
-	if (fromEnv) {
-		return withPath(fromEnv, path);
-	}
-
-	if (typeof window !== "undefined" && window.location) {
-		return withPath(window.location.origin, path);
-	}
-	return undefined;
 }
 
 // Based in https://github.com/ping-maxwell/better-auth-kit/blob/main/packages/libraries/tests/src/utils/env.ts
