@@ -1,17 +1,20 @@
-import { createAuthEndpoint } from "better-auth/api";
+import {
+	APIError,
+	createAuthEndpoint,
+	getSessionFromCtx,
+} from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { getInviteAdapter } from "../adapter";
 import { ERROR_CODES } from "../constants";
 import type { NewInviteOptions } from "../types";
-import { normalizeEmails, optionalSessionMiddleware } from "../utils";
+import { normalizeEmails } from "../utils";
 
 export const getInvite = (options: NewInviteOptions) => {
 	return createAuthEndpoint(
 		"/invite/get",
 		{
 			method: "GET",
-			use: [optionalSessionMiddleware],
 			query: z.object({
 				/**
 				 * The invite token to look up.
@@ -85,10 +88,7 @@ export const getInvite = (options: NewInviteOptions) => {
 			const invitation = await adapter.findInvitation(token);
 
 			if (!invitation) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVALID_TOKEN,
-					errorCode: "INVALID_TOKEN",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
 			const emails = normalizeEmails<string[]>(
@@ -97,18 +97,15 @@ export const getInvite = (options: NewInviteOptions) => {
 			);
 			const isPrivate = emails.length > 0;
 
-			const sessionObject = ctx.context.session;
-			const sessionUser = sessionObject?.user as UserWithRole | null;
+			const session = await getSessionFromCtx(ctx);
+			const sessionUser = session?.user as UserWithRole | null;
 
 			// For private invites, the requester must exist, match the invite email, and the invite must have a creator.
 			if (
 				(isPrivate && (!sessionUser || !emails?.includes(sessionUser.email))) ||
 				!invitation.createdByUserId
 			) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVALID_TOKEN,
-					errorCode: "INVALID_TOKEN",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
 			const inviter = (await ctx.context.internalAdapter.findUserById(
@@ -116,10 +113,7 @@ export const getInvite = (options: NewInviteOptions) => {
 			)) as UserWithRole | null;
 
 			if (!inviter) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVITER_NOT_FOUND,
-					errorCode: "INVITER_NOT_FOUND",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVITER_NOT_FOUND);
 			}
 
 			return ctx.json({

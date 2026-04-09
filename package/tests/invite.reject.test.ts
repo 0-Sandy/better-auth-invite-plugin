@@ -127,8 +127,8 @@ test("non-invitee cannot reject invite", async ({ createAuth }) => {
 	expect(rejected.data).toBeNull();
 	expect(rejected.error).toEqual(
 		expect.objectContaining({
-			errorCode: "CANT_REJECT_INVITE",
-			message: ERROR_CODES.CANT_REJECT_INVITE,
+			code: "CANT_REJECT_INVITE",
+			message: ERROR_CODES.CANT_REJECT_INVITE.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -160,8 +160,8 @@ test("rejecting with an invalid token returns error", async ({
 	expect(rejected.data).toBeNull();
 	expect(rejected.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INVALID_TOKEN",
-			message: ERROR_CODES.INVALID_TOKEN,
+			code: "INVALID_TOKEN",
+			message: ERROR_CODES.INVALID_TOKEN.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -198,8 +198,8 @@ test("public invite cannot be rejected", async ({ createAuth }) => {
 	expect(rejected.data).toBeNull();
 	expect(rejected.error).toEqual(
 		expect.objectContaining({
-			errorCode: "CANT_REJECT_INVITE",
-			message: ERROR_CODES.CANT_REJECT_INVITE,
+			code: "CANT_REJECT_INVITE",
+			message: ERROR_CODES.CANT_REJECT_INVITE.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -260,8 +260,8 @@ test("canRejectInvite is called and can block rejection", async ({
 	expect(rejected.data).toBeNull();
 	expect(rejected.error).toEqual(
 		expect.objectContaining({
-			errorCode: "CANT_REJECT_INVITE",
-			message: ERROR_CODES.CANT_REJECT_INVITE,
+			code: "CANT_REJECT_INVITE",
+			message: ERROR_CODES.CANT_REJECT_INVITE.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),
@@ -333,8 +333,8 @@ test("canRejectInvite supports Permissions objects", async ({ createAuth }) => {
 	expect(rejected.data).toBeNull();
 	expect(rejected.error).toEqual(
 		expect.objectContaining({
-			errorCode: "CANT_REJECT_INVITE",
-			message: ERROR_CODES.CANT_REJECT_INVITE,
+			code: "CANT_REJECT_INVITE",
+			message: ERROR_CODES.CANT_REJECT_INVITE.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),

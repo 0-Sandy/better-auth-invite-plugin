@@ -1,4 +1,8 @@
-import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthEndpoint,
+	sessionMiddleware,
+} from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { getInviteAdapter } from "../adapter";
@@ -73,24 +77,18 @@ export const cancelInvite = (options: NewInviteOptions) => {
 			const invitation = await adapter.findInvitation(token);
 
 			if (!invitation) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVALID_TOKEN,
-					errorCode: "INVALID_TOKEN",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
 			if (invitation.createdByUserId !== inviterUser.id) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-					errorCode: "INSUFFICIENT_PERMISSIONS",
-				});
+				throw APIError.from(
+					"BAD_REQUEST",
+					ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+				);
 			}
 
 			if (invitation.status !== "pending" && invitation.status !== undefined) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVALID_TOKEN,
-					errorCode: "INVALID_TOKEN",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
 			const canCancelInviteOption =
@@ -107,10 +105,10 @@ export const cancelInvite = (options: NewInviteOptions) => {
 					: canCancelInviteOption;
 
 			if (!canCancelInvite) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-					errorCode: "INSUFFICIENT_PERMISSIONS",
-				});
+				throw APIError.from(
+					"BAD_REQUEST",
+					ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+				);
 			}
 
 			await options.inviteHooks?.beforeCancelInvite?.({ ctx, invitation });

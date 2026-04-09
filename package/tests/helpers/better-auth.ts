@@ -38,6 +38,7 @@ export const test = baseTest.extend<{
 				advancedOptions?: BetterAuthAdvancedOptions;
 			}) => {
 				const auth = betterAuth({
+					baseURL: "http://localhost:3000",
 					database,
 					plugins: [
 						adminPlugin({

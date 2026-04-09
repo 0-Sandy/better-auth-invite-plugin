@@ -117,7 +117,7 @@ test("throws error when sendUserInvitation doesn't exist but the invite is priva
 
 	// Should throw an error because no sending function is configured
 	expect(error).toStrictEqual({
-		code: "INVITATION_EMAIL_IS_NOT_ENABLED",
+		code: "INVITATION_EMAIL_NOT_ENABLED",
 		message: "Invitation email is not enabled",
 		status: 500,
 		statusText: "INTERNAL_SERVER_ERROR",
@@ -411,8 +411,8 @@ test("canCreateInvite supports Permissions objects", async ({ createAuth }) => {
 	expect(res.data).toBeNull();
 	expect(res.error).toEqual(
 		expect.objectContaining({
-			errorCode: "INSUFFICIENT_PERMISSIONS",
-			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+			code: "INSUFFICIENT_PERMISSIONS",
+			message: ERROR_CODES.INSUFFICIENT_PERMISSIONS.message,
 			status: 400,
 			statusText: "BAD_REQUEST",
 		}),

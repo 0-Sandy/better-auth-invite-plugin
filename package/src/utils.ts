@@ -1,4 +1,5 @@
 import {
+	APIError,
 	type AuthContext,
 	type BetterAuthPlugin,
 	type GenericEndpointContext,
@@ -8,11 +9,7 @@ import {
 import { getSessionFromCtx } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
-import {
-	type admin,
-	createAuthMiddleware,
-	type UserWithRole,
-} from "better-auth/plugins";
+import type { admin, UserWithRole } from "better-auth/plugins";
 import type { InviteAdapter } from "./adapter";
 import { ERROR_CODES } from "./constants";
 import type { CreateInvite } from "./routes/create-invite";
@@ -109,17 +106,11 @@ export const consumeInvite = async ({
 	const isPrivate = emails.length > 0;
 
 	if (isPrivate && !emails.includes(invitedUser.email)) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.INVALID_EMAIL,
-			code: "INVALID_EMAIL",
-		});
+		throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_EMAIL);
 	}
 
 	if (invitation.status !== "pending" && invitation.status !== undefined) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.INVALID_TOKEN,
-			code: "INVALID_TOKEN",
-		});
+		throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 	}
 
 	const canAcceptInviteOptions =
@@ -132,10 +123,7 @@ export const consumeInvite = async ({
 			: canAcceptInviteOptions;
 
 	if (!canAcceptInvite) {
-		throw ctx.error("BAD_REQUEST", {
-			message: ERROR_CODES.CANT_ACCEPT_INVITE,
-			code: "CANT_ACCEPT_INVITE",
-		});
+		throw APIError.from("BAD_REQUEST", ERROR_CODES.CANT_ACCEPT_INVITE);
 	}
 
 	await ctx.context.adapter.update({
@@ -244,9 +232,13 @@ export const checkPermissions = async (
 	ctx: GenericEndpointContext,
 	permissions: Permissions,
 ) => {
-	const session = ctx.context.session;
+	const session = await getSessionFromCtx(ctx);
+
 	if (!session?.session) {
-		throw ctx.error("UNAUTHORIZED");
+		throw APIError.from("UNAUTHORIZED", {
+			message: "Unauthorized",
+			code: "UNAUTHORIZED",
+		});
 	}
 
 	const adminPlugin = getPlugin<AdminPlugin>(
@@ -256,9 +248,10 @@ export const checkPermissions = async (
 
 	if (!adminPlugin) {
 		ctx.context.logger.error("Admin plugin is not set-up.");
-		throw ctx.error("FAILED_DEPENDENCY", {
-			message: ERROR_CODES.ADMIN_PLUGIN_IS_NOT_SET_UP,
-		});
+		throw APIError.from(
+			"FAILED_DEPENDENCY",
+			ERROR_CODES.ADMIN_PLUGIN_IS_NOT_SET_UP,
+		);
 	}
 
 	try {
@@ -303,13 +296,3 @@ export const createRedirectURL = ({
 		.replace("{token}", invitation.token)
 		.replace("{callbackURL}", encodeURIComponent(callbackURL));
 };
-
-// https://github.com/better-auth/better-auth/blob/08ff06d3319dc1472f24844378a9e1f572323b90/packages/better-auth/src/api/routes/session.ts#L501
-
-export const optionalSessionMiddleware = createAuthMiddleware(async (ctx) => {
-	const session = await getSessionFromCtx(ctx);
-
-	return {
-		session,
-	};
-});

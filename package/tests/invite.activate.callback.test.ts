@@ -26,7 +26,7 @@ test("test activateInviteCallback with an invalid token", async ({
 
 	expect(newError).toStrictEqual({
 		error: "INVALID_TOKEN",
-		message: "Invalid invite token",
+		message: "Invalid or non-existent token",
 	});
 });
 
@@ -203,8 +203,8 @@ test("test activateInvite with an expired invite", async ({ createAuth }) => {
 
 	// Should throw an error because the invite has expired
 	expect(newError).toStrictEqual({
-		error: "INVALID_TOKEN",
-		message: "Invite token has expired",
+		error: "INVALID_OR_EXPIRED_INVITE",
+		message: "Invalid or expired invite code",
 	});
 });
 

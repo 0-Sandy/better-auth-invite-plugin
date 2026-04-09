@@ -1,11 +1,7 @@
 import { createAuthEndpoint, originCheck } from "better-auth/api";
 import * as z from "zod";
 import type { NewInviteOptions } from "../types";
-import {
-	optionalSessionMiddleware,
-	redirectCallback,
-	redirectError,
-} from "../utils";
+import { redirectCallback, redirectError } from "../utils";
 import { activateInviteLogic } from "./activate-invite";
 
 /**
@@ -19,10 +15,7 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 		"/invite/:token",
 		{
 			method: "GET",
-			use: [
-				optionalSessionMiddleware,
-				originCheck((ctx) => ctx.query.callbackURL),
-			],
+			use: [originCheck((ctx) => ctx.query.callbackURL)],
 			query: z.object({
 				/**
 				 * Where to redirect the user after sing in/up

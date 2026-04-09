@@ -1,4 +1,8 @@
-import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthEndpoint,
+	sessionMiddleware,
+} from "better-auth/api";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { getInviteAdapter } from "../adapter";
@@ -73,10 +77,7 @@ export const rejectInvite = (options: NewInviteOptions) => {
 			const invitation = await adapter.findInvitation(token);
 
 			if (!invitation) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVALID_TOKEN,
-					errorCode: "INVALID_TOKEN",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
 			const emails = normalizeEmails<string[]>(
@@ -87,18 +88,12 @@ export const rejectInvite = (options: NewInviteOptions) => {
 
 			// Throws error if the invite is public or if the user email doesn’t match the invite
 			if (!isPrivate || !invitation.emails?.includes(inviteeUser.email)) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.CANT_REJECT_INVITE,
-					errorCode: "CANT_REJECT_INVITE",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.CANT_REJECT_INVITE);
 			}
 
 			// Throws error if the invite is already rejected, accepted...
 			if (invitation.status !== "pending" && invitation.status !== undefined) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.INVALID_TOKEN,
-					errorCode: "INVALID_TOKEN",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
 			const canRejectInviteOptions =
@@ -115,10 +110,7 @@ export const rejectInvite = (options: NewInviteOptions) => {
 					: canRejectInviteOptions;
 
 			if (!canRejectInvite) {
-				throw ctx.error("BAD_REQUEST", {
-					message: ERROR_CODES.CANT_REJECT_INVITE,
-					errorCode: "CANT_REJECT_INVITE",
-				});
+				throw APIError.from("BAD_REQUEST", ERROR_CODES.CANT_REJECT_INVITE);
 			}
 
 			await options.inviteHooks?.beforeRejectInvite?.({ ctx, invitation });

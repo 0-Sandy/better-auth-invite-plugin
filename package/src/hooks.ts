@@ -1,5 +1,5 @@
 import type { HookEndpointContext, Status, statusCodes } from "better-auth";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { expireCookie } from "better-auth/cookies";
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
@@ -71,25 +71,28 @@ export const invitesHooks = (options: NewInviteOptions) => {
 					}
 
 					if (invitation.expiresAt < options.getDate()) {
-						throw ctx.error("BAD_REQUEST", {
-							message: ERROR_CODES.INVALID_OR_EXPIRED_INVITE,
-						});
+						throw APIError.from(
+							"BAD_REQUEST",
+							ERROR_CODES.INVALID_OR_EXPIRED_INVITE,
+						);
 					}
 
 					const timesUsed = await adapter.countInvitationUses(invitation.id);
 
 					if (!(timesUsed < invitation.maxUses)) {
-						throw ctx.error("BAD_REQUEST", {
-							message: ERROR_CODES.NO_USES_LEFT_FOR_INVITE,
-						});
+						throw APIError.from(
+							"BAD_REQUEST",
+							ERROR_CODES.NO_USES_LEFT_FOR_INVITE,
+						);
 					}
 
 					const session =
 						ctx.context.newSession?.session ?? ctx.context.session?.session;
 
 					if (!session) {
-						throw ctx.error("INTERNAL_SERVER_ERROR", {
+						throw APIError.from("INTERNAL_SERVER_ERROR", {
 							message: "No session found for updating cookie",
+							code: "INTERNAL_SERVER_ERROR",
 						});
 					}
 
@@ -100,16 +103,6 @@ export const invitesHooks = (options: NewInviteOptions) => {
 					if (before?.user) {
 						invitedUser = before.user;
 					}
-
-					const _error = (
-						httpErrorCode: keyof typeof statusCodes | Status,
-						errorMessage: string,
-						urlErrorCode: string,
-					) =>
-						ctx.error(httpErrorCode, {
-							message: errorMessage,
-							errorCode: urlErrorCode,
-						});
 
 					await consumeInvite({
 						ctx,
