@@ -105,7 +105,8 @@ export const activateInviteLogic = async (
 
 	const timesUsed = await adapter.countInvitationUses(invitation.id);
 
-	if (!(timesUsed < invitation.maxUses)) {
+	// If the invite doesn't have infinity max uses and has been used the maximum number of times, return an error
+	if (!invitation.infinityMaxUses && timesUsed >= invitation.maxUses) {
 		throw APIError.from(
 			"BAD_REQUEST",
 			ERROR_CODES.INVITE_TOKEN_HAS_ALREADY_BEEN_USED,

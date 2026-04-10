@@ -309,6 +309,7 @@ export type InviteType = {
 	createdAt: Date;
 	expiresAt: Date;
 	maxUses: number;
+	infinityMaxUses: boolean;
 	redirectToAfterUpgrade?: string;
 	shareInviterName: boolean;
 	/**
