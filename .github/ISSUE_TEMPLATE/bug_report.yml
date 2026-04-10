@@ -22,6 +22,13 @@ body:
       required: true
   - type: textarea
     attributes:
+      label: Reproduction link (if applicable)
+      description: If you have a reproducible example, please share a link to it here. This can be a GitHub repository, a CodeSandbox, or any other platform that allows us to run the code and see the issue in action.
+      placeholder: |
+        Ex:
+        https://github.com/...
+  - type: textarea
+    attributes:
       label: Current vs. Expected behavior
       description: |
         A clear and concise description of what the bug is (e.g., screenshots, logs, etc.), and what you expected to happen.
@@ -35,6 +42,13 @@ body:
       label: What version of Better Invite are you using?
       description: Please provide the current version of `better-invite` that you are reporting the bug on
       placeholder: "0.x.x"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: What version of Better Auth are you using?
+      description: Please provide the current version of `better-auth` that you are reporting the bug on
+      placeholder: "1.x.x"
     validations:
       required: true
   - type: textarea

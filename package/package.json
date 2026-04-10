@@ -51,8 +51,8 @@
 		}
 	},
 	"dependencies": {
-		"@better-auth/utils": "^0.3.0",
-		"zod": "^4.3.5"
+		"@better-auth/utils": "^0.4.0",
+		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@types/better-sqlite3": "^7.6.13",
@@ -82,7 +82,12 @@
 			"@semantic-release/commit-analyzer",
 			"@semantic-release/release-notes-generator",
 			"@semantic-release/npm",
-			"@semantic-release/github"
+			[
+				"@semantic-release/github",
+				{
+					"releaseBodyTemplate": "Test Body\n\n<%= nextRelease.notes %>"
+				}
+			]
 		]
 	}
 }
