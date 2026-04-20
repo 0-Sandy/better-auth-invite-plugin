@@ -37,4 +37,4 @@ jobs:
       - name: Build
         run: pnpm build
       
-      - run: pnpm dlx pkg-pr-new publish --pnpm --compact './package'
+      - run: pnpm dlx pkg-pr-new publish --pnpm --compact './package' --template './demo'
