@@ -112,6 +112,7 @@ export const activateInviteLogic = async (
 
 	const maxUses = getMaxUses(invitation);
 	const timesUsed = await adapter.countInvitationUses(invitation.id);
+	const isFiniteInvite = !invitation.infinityMaxUses;
 
 	// Check if the invite was already fully used
 	if (timesUsed >= maxUses) {

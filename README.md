@@ -12,6 +12,13 @@
   A plugin for <a href="https://www.better-auth.com">Better Auth</a> that adds an invitation system, allowing you to create, send, and manage invites for user sign-ups or role upgrades.
   <br />
   <a href="https://www.better-invite.com"><strong>Learn More »</strong></a>
+  <br />
+  <br />
+  <a href="https://demo.better-invite.com">Demo</a>
+  ·
+  <a href="https://www.better-invite.com">Website</a>
+  ·
+  <a href="https://github.com/better-invite/better-invite/issues">Issues</a>
 </p>
 
 <p align="center">

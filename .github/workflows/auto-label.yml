@@ -1,0 +1,27 @@
+name: Auto Label
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/labeler@v6
+        with:
+          repo-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          sync-labels: false
+          dot: true

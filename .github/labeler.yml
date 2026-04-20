@@ -1,0 +1,23 @@
+# Auto-label config for actions/labeler
+# Maps changed file paths to domain labels
+# All matching labels are applied
+
+package:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package/**'
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+
+demo:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'demo/**'
+
+devops:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
