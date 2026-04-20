@@ -861,7 +861,11 @@ test("test activateInvite with infiniteMaxUses", async ({ createAuth }) => {
 
 	// It should still exist because maxUses is infinite
 	expect(inviteUses).toBe(1);
-	expect(newInvite).not.toBeNull();
+	expect(newInvite).toMatchObject({
+		token: tokenValue,
+		status: "pending",
+		infinityMaxUses: true,
+	});
 });
 
 test("activateInvite uses defaultRedirectAfterUpgrade", async ({
