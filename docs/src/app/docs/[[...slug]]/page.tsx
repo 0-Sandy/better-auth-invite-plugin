@@ -1,5 +1,7 @@
+import { findSiblings } from "fumadocs-core/page-tree";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
 import { GithubInfo } from "fumadocs-ui/components/github-info";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
@@ -12,8 +14,8 @@ import {
 	EditOnGitHub,
 	PageLastUpdate,
 } from "fumadocs-ui/layouts/docs/page";
-import { createRelativeLink } from "fumadocs-ui/mdx";
-import { Heart } from "lucide-react";
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import { Heart, MilestoneIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -21,34 +23,40 @@ import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
 import { APIMethod } from "@/components/api-method";
 import DatabaseTable from "@/components/database-table";
 import { Feedback, FeedbackBlock } from "@/components/feedback/client";
-import { GithubButton } from "@/components/github-button";
 import { GithubUser } from "@/components/github-user";
 import { Mermaid } from "@/components/mdx/mermaid";
 import { NpmButton } from "@/components/npm-button";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
+import {
+	type DocsVersion,
+	docsVersions,
+	resolveVersionFromSlug,
+	scopeDocsHref,
+} from "@/lib/docs-versions";
 import { onBlockFeedbackAction, onPageFeedbackAction } from "@/lib/github";
 import { createMetadata, getPageImage } from "@/lib/metadata";
-import { source } from "@/lib/source";
+import { getSourceFor } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
 
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
-	const params = await props.params;
-	const page = source.getPage(params.slug);
+	const { slug } = await props.params;
+	const { version, relSlug } = resolveVersionFromSlug(slug ?? []);
+	const src = getSourceFor(version.slug);
+	const page = src.getPage(relSlug);
+
 	if (!page) notFound();
 
-	if (page.data.type === "openapi") {
-		const { APIPage } = await import("@/components/api-page");
-		return (
-			<DocsPage full>
-				<h1 className="text-[1.75em] font-semibold">{page.data.title}</h1>
+	// Upstream content always lives at docs/content/docs on each branch;
+	// `content/docs-beta` is only a local sync target, not in the repo tree.
+	const rawBase = `https://raw.githubusercontent.com/better-invite/better-invite/${version.branch}/docs/content/docs`;
+	const githubBase = `https://github.com/better-invite/better-invite/blob/${version.branch}/docs/content/docs`;
 
-				<DocsBody>
-					<APIPage {...page.data.getAPIPageProps()} />
-				</DocsBody>
-			</DocsPage>
-		);
-	}
+	// Keep every absolute /docs link scoped to the version being viewed.
+	const scope = (href: string | undefined) => scopeDocsHref(href, version);
+	const DefaultAnchor = defaultMdxComponents.a;
 
+	// TODO: Remove gitConfig and GithubInfo
 	const gitConfig = {
 		user: "better-invite",
 		repo: "better-invite",
@@ -61,21 +69,16 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 
 	return (
 		<DocsPage toc={page.data.toc} full={page.data.full}>
+			{version.slug === "beta" && <BetaBanner version={version} />}
 			<DocsTitle>{page.data.title}</DocsTitle>
 			<DocsDescription className="mb-0">
 				{page.data.description}
 			</DocsDescription>
 			<div className="flex flex-row gap-2 items-center border-b pb-6">
-				<LLMCopyButton markdownUrl={`${page.url}.mdx`} />
+				<LLMCopyButton markdownUrl={`${rawBase}.mdx`} />
 				<ViewOptions
 					markdownUrl={`${page.url}.mdx`}
-					// update it to match your repo
-					githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/docs/content/docs/${page.path}`}
-				/>
-				<GithubButton
-					label="Source"
-					username={gitConfig.user}
-					repository={gitConfig.repo}
+					githubUrl={`${githubBase}/${page.path}`}
 				/>
 				<NpmButton packageName={npmName} />
 			</div>
@@ -83,7 +86,23 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 				<MDX
 					components={getMDXComponents({
 						// this allows you to link to other pages with relative file paths
-						a: createRelativeLink(source, page),
+						a: (props: React.ComponentProps<"a">) => (
+							<DefaultAnchor {...props} href={scope(props.href)} />
+						),
+						Link: ({
+							href,
+							className,
+							...props
+						}: React.ComponentProps<typeof Link>) => (
+							<Link
+								href={typeof href === "string" ? (scope(href) ?? href) : href}
+								className={cn(
+									"font-medium underline underline-offset-4",
+									className,
+								)}
+								{...props}
+							/>
+						),
 						Step,
 						Steps,
 						Callout,
@@ -108,6 +127,9 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 						GithubUser,
 						DatabaseTable,
 						Mermaid,
+						DocsCategory: ({ url }) => {
+							return <DocsCategory url={url ?? page.url} src={src} />;
+						},
 					})}
 				/>
 			</DocsBody>
@@ -142,39 +164,94 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 	);
 }
 
+function BetaBanner({ version }: { version: DocsVersion }) {
+	return (
+		<div className="mb-2 flex items-center gap-3 py-2.5 text-sm text-blue-600 dark:text-blue-400 text-pretty">
+			<MilestoneIcon size={18} className="shrink-0" fill="currentColor" />
+			<p>
+				You are currently viewing documentation for{" "}
+				<span className="bg-blue-600/10 dark:bg-blue-400/15 px-1 py-0.5 rounded-lg font-medium tracking-wider">
+					{version.label}
+				</span>
+			</p>
+		</div>
+	);
+}
+
 export async function generateStaticParams() {
-	return source.generateParams();
+	return docsVersions.flatMap((v) => {
+		const src = getSourceFor(v.slug);
+		return src.generateParams().map((p) => ({
+			slug: v.slug ? [v.slug, ...(p.slug ?? [])] : p.slug,
+		}));
+	});
 }
 
 export async function generateMetadata(
 	props: PageProps<"/docs/[[...slug]]">,
 ): Promise<Metadata> {
-	const params = await props.params;
-	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	const { slug } = await props.params;
+	const { version, relSlug } = resolveVersionFromSlug(slug ?? []);
+	const src = getSourceFor(version.slug);
+	const page = src.getPage(relSlug);
+	if (!page) return notFound();
+
+	const title = version.slug
+		? `${version.label} - ${page.data.title}`
+		: page.data.title;
 
 	const description =
-		page.data.description ?? "The plugin to invite users to your app";
+		page.data.description ??
+		"A plugin for Better Auth that adds an invitation system, allowing you to create, send, and manage invites for user sign-ups or role upgrades.";
 
-	const image = {
-		url: getPageImage(page).url,
-		width: 1200,
-		height: 630,
-	};
+	const ogUrl = getPageImage(page).url;
 
 	return createMetadata({
-		title: page.data.title,
+		title,
 		description,
 		openGraph: {
-			url: `/docs/${page.slugs.join("/")}`,
-			title: page.data.title,
+			title,
 			description,
-			images: [image],
+			type: "article",
+			images: [
+				{
+					url: ogUrl,
+					width: 1200,
+					height: 630,
+				},
+			],
 		},
 		twitter: {
-			images: [image],
-			title: page.data.title,
+			card: "summary_large_image",
+			title,
 			description,
+			images: [ogUrl],
 		},
 	});
+}
+
+function DocsCategory({
+	url,
+	src,
+}: {
+	url: string;
+	src: ReturnType<typeof getSourceFor>;
+}) {
+	return (
+		<Cards>
+			{findSiblings(src.getPageTree(), url).flatMap((item) => {
+				if (item.type === "separator") return [];
+				if (item.type === "folder") {
+					if (!item.index) return [];
+					item = item.index;
+				}
+
+				return (
+					<Card key={item.url} title={item.name} href={item.url}>
+						{item.description}
+					</Card>
+				);
+			})}
+		</Cards>
+	);
 }

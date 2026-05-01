@@ -1,6 +1,3 @@
-import { buttonVariants } from "fumadocs-ui/components/ui/button";
-import { SquareArrowOutUpRight } from "lucide-react";
-import Link from "next/link";
 import type React from "react";
 import { cn } from "@/lib/cn";
 
@@ -22,37 +19,3 @@ export const GithubLogo = ({
 		/>
 	</svg>
 );
-
-export const GithubButton = ({
-	username,
-	repository,
-	sha = "main",
-	path,
-	label = "GitHub",
-	noExternalIcon = false,
-}: {
-	label?: string;
-	username: string;
-	repository: string;
-	sha?: string;
-	path?: string;
-	noExternalIcon?: boolean;
-}) => {
-	return (
-		<Link
-			href={`https://github.com/${username}/${repository}/tree/${sha}${path ? (path?.startsWith("/") ? path : `/${path}`) : ""}`}
-			target="_blank"
-			rel="noopener noreferrer"
-			className={buttonVariants({
-				variant: "secondary",
-				size: "sm",
-			})}
-		>
-			<GithubLogo />
-			{label}
-			{!noExternalIcon && (
-				<SquareArrowOutUpRight className="size-3.5 text-muted-foreground" />
-			)}
-		</Link>
-	);
-};

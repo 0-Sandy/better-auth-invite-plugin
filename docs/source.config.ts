@@ -28,11 +28,31 @@ export const docs = defineDocs({
 
 			return applyMdxPreset({
 				remarkPlugins: [remarkMdxMermaid, remarkFeedbackBlock],
-				remarkNpmOptions: {
-					persist: {
-						id: "package-manager",
-					},
-				},
+			})(environment);
+		},
+	},
+	meta: {
+		schema: metaSchema,
+	},
+});
+
+export const docsBeta = defineDocs({
+	dir: "./content/docs-beta",
+	docs: {
+		schema: pageSchema,
+		postprocess: {
+			includeProcessedMarkdown: true,
+		},
+		async mdxOptions(environment) {
+			const { remarkFeedbackBlock } = await import(
+				"fumadocs-core/mdx-plugins/remark-feedback-block"
+			);
+			const { remarkMdxMermaid } = await import(
+				"fumadocs-core/mdx-plugins/remark-mdx-mermaid"
+			);
+
+			return applyMdxPreset({
+				remarkPlugins: [remarkMdxMermaid, remarkFeedbackBlock],
 			})(environment);
 		},
 	},
@@ -62,5 +82,12 @@ export const blog = defineCollections({
 });
 
 export default defineConfig({
+	mdxOptions: {
+		remarkNpmOptions: {
+			persist: {
+				id: "persist-install",
+			},
+		},
+	},
 	plugins: [lastModified()],
 });

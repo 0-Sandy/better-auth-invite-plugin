@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Banner } from "@/components/banner";
-import { GithubLogo } from "@/components/github-button";
+import { GithubLogo } from "@/components/github-logo";
 import { Terminal } from "@/components/terminal";
 
 export default function HomePage() {

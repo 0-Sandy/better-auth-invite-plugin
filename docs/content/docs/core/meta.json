@@ -1,5 +1,4 @@
 {
 	"title": "Core",
-	"pages": ["api", "schema", "diagram", "extras"],
-	"icon": "Blocks"
+	"pages": ["api", "schema", "diagram", "extras"]
 }

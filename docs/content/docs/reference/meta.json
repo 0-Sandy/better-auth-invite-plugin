@@ -1,5 +1,4 @@
 {
 	"title": "Reference",
-	"pages": ["faq", "troubleshooting", "contributing", "security"],
-	"icon": "LibraryBig"
+	"pages": ["faq", "troubleshooting", "contributing", "security"]
 }

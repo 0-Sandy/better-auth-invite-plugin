@@ -41,3 +41,7 @@ coverage
 
 # next.js
 next-env.d.ts
+
+/docs/content/docs-beta/*
+!docs/content/docs-beta/.gitkeep
+.docs/beta-sync-tmp/

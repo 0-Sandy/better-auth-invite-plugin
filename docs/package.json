@@ -7,7 +7,10 @@
 		"dev": "next dev",
 		"start": "next start",
 		"types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
-		"postinstall": "fumadocs-mdx"
+		"postinstall": "fumadocs-mdx",
+		"predev": "pnpm sync-beta",
+		"prebuild": "pnpm sync-beta",
+		"sync-beta": "node scripts/sync-beta-content.ts"
 	},
 	"dependencies": {
 		"@radix-ui/react-collapsible": "^1.1.12",
@@ -22,7 +25,6 @@
 		"feed": "^5.2.0",
 		"fumadocs-core": "^16.5.4",
 		"fumadocs-mdx": "^14.2.7",
-		"fumadocs-openapi": "^10.3.5",
 		"fumadocs-typescript": "^5.1.2",
 		"fumadocs-ui": "^16.5.4",
 		"lucide-react": "^0.563.0",
