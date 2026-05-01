@@ -119,8 +119,9 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Fetch all tags
-        run: git fetch --tags --force
+      - name: Create local tag (force beta.1)
+        run: |
+          git tag -f v0.6.0-beta.1
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { formatCategoryName, getSection } from "@/lib/navigation";
-import { source } from "@/lib/source";
+import { source } from "../../lib/source";
 
 export const revalidate = false;
 
@@ -15,22 +14,31 @@ function groupPagesByCategory(pages: any[]): Map<string, PageInfo[]> {
 	const grouped = new Map<string, PageInfo[]>();
 
 	for (const page of pages) {
-		const category = getSection(page.slugs[0]);
+		// Skip openapi pages
+		if (page.slugs[0] === "openapi") continue;
 
+		const category = page.slugs[0] || "general";
 		const pageInfo: PageInfo = {
 			title: page.data.title,
 			description: page.data.description || "",
-			url: `/llms.mdx${page.url}`,
+			url: `/llms.txt${page.url}.md`,
 			category: category,
 		};
 
 		if (!grouped.has(category)) {
 			grouped.set(category, []);
 		}
-		grouped.get(category)?.push(pageInfo);
+		grouped.get(category)!.push(pageInfo);
 	}
 
 	return grouped;
+}
+
+function formatCategoryName(category: string): string {
+	return category
+		.split("-")
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(" ");
 }
 
 export async function GET() {
@@ -39,15 +47,15 @@ export async function GET() {
 
 	let content = `# Better Invite
 
-> A Better Auth plugin for secure invitations and automatic role assignment.
+> A Better Auth plugin for secure invitations with automatic role assignment.
 
 ## Table of Contents
 
 `;
 
-	const categories = Array.from(groupedPages.keys());
+	const sortedCategories = Array.from(groupedPages.keys()).sort();
 
-	for (const category of categories) {
+	for (const category of sortedCategories) {
 		const categoryPages = groupedPages.get(category)!;
 		const formattedCategory = formatCategoryName(category);
 

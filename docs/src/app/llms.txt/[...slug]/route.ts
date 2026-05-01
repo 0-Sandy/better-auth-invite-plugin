@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { docsVersions, resolveVersionFromSlug } from "@/lib/docs-versions";
-import { getLLMText, getSourceFor, LLM_TEXT_ERROR } from "@/lib/source";
+import {
+	docsVersions,
+	resolveVersionFromSlug,
+} from "../../../lib/docs-versions";
+import { getLLMText, getSourceFor, LLM_TEXT_ERROR } from "../../../lib/source";
 
 export const revalidate = false;
 
