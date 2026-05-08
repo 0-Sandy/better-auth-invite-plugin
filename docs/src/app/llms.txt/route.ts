@@ -28,7 +28,7 @@ function groupPagesByCategory(pages: any[]): Map<string, PageInfo[]> {
 		if (!grouped.has(category)) {
 			grouped.set(category, []);
 		}
-		grouped.get(category)!.push(pageInfo);
+		grouped.get(category)?.push(pageInfo);
 	}
 
 	return grouped;

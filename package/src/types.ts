@@ -1,5 +1,6 @@
 import type { Awaitable, GenericEndpointContext } from "better-auth";
 import type { InferOptionSchema, UserWithRole } from "better-auth/plugins";
+import type { Tokens } from "./constants";
 import type { InviteSchema } from "./schema";
 
 export type InviteOptions = {
@@ -97,21 +98,18 @@ export type InviteOptions = {
 	defaultTokenType?: TokensType;
 	/**
 	 * The default redirect to make the user to sign up
+	 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
 	 *
 	 * @default /auth/sign-up
 	 */
 	defaultRedirectToSignUp?: string;
 	/**
 	 * The default redirect to make the user to sign up
+	 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
 	 *
 	 * @default /auth/sign-in
 	 */
 	defaultRedirectToSignIn?: string;
-	/**
-	 * The default redirect after upgrading role (or logging in with an invite)
-	 * {token} will be replaced with the user's actual token.
-	 */
-	defaultRedirectAfterUpgrade?: string;
 	/**
 	 * Whether the inviter's name should be shared with the invitee by default.
 	 *
@@ -185,7 +183,7 @@ export type InviteOptions = {
 	cleanupInvitesAfterMaxUses?: boolean;
 	/**
 	 * The user will be redirected here to activate their invite
-	 * Use {token} and {callbackUrl}, this will be replaced with their values
+	 * Use {token}, {callbackUrl} and {email}, this will be replaced with their values
 	 */
 	defaultCustomInviteUrl?: string;
 	/**
@@ -306,7 +304,6 @@ export type InviteType = {
 	expiresAt: Date;
 	maxUses: number;
 	infinityMaxUses: boolean;
-	redirectToAfterUpgrade?: string;
 	shareInviterName: boolean;
 	/**
 	 * @deprecated Use emails
@@ -322,7 +319,7 @@ export type InviteTypeWithId = InviteType & {
 	id: string;
 };
 
-export type TokensType = "token" | "code" | "custom";
+export type TokensType = (typeof Tokens)[number];
 
 export type InviteUseType = {
 	inviteId: string;

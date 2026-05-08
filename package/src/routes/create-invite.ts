@@ -59,10 +59,11 @@ export const createInvite = (options: NewInviteOptions) => {
 				senderResponse,
 				senderResponseRedirect,
 				customInviteUrl,
+				redirectToAfterUpgrade,
 			} = resolveInvitePayload(ctx.body, options);
 
 			// Normalize the input to always work with an array internally.
-			const emails = normalizeEmails<string[]>(email, []);
+			const emails = normalizeEmails(email);
 			const isPrivate = emails.length > 0;
 
 			const invitations: InviteTypeWithId[] = [];
@@ -123,7 +124,8 @@ export const createInvite = (options: NewInviteOptions) => {
 							return {
 								email: recipientEmail,
 								invitedUser,
-								callbackURL: invitedUser ? redirectToSignIn : redirectToSignUp,
+								signInUpUrl: invitedUser ? redirectToSignIn : redirectToSignUp,
+								redirectToAfterUpgrade,
 								newAccount: !invitedUser,
 							};
 						}),
@@ -154,9 +156,10 @@ export const createInvite = (options: NewInviteOptions) => {
 					const redirectURLEmail = createRedirectURL({
 						ctx,
 						invitation,
-						callbackURL: recipient.callbackURL,
+						signInUpUrl: recipient.signInUpUrl,
 						customInviteUrl,
 						email: recipient.email,
+						callbackUrl: recipient.redirectToAfterUpgrade,
 					});
 
 					const realBaseURL = new URL(ctx.context.baseURL);
@@ -207,7 +210,7 @@ export const createInvite = (options: NewInviteOptions) => {
 			}
 
 			// Public invite: return the token or the redirect URL.
-			const redirectTo =
+			const signInUpUrl =
 				senderResponseRedirect === "signUp"
 					? redirectToSignUp
 					: redirectToSignIn;
@@ -215,8 +218,9 @@ export const createInvite = (options: NewInviteOptions) => {
 			const redirectURL = createRedirectURL({
 				ctx,
 				invitation,
-				callbackURL: redirectTo,
+				signInUpUrl,
 				customInviteUrl,
+				callbackUrl: redirectToAfterUpgrade,
 			});
 
 			const returnToken =
@@ -260,22 +264,27 @@ export const createInviteBodySchema = z.object({
 	 * If the token isn't valid or expired, it'll be redirected with a query parameter `?
 	 * error=INVALID_TOKEN`. If the token is valid, it'll be redirected with a query parameter `?
 	 * token=VALID_TOKEN
+	 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
 	 *
 	 * @default options.defaultRedirectTo
 	 */
 	redirectToSignUp: z
 		.string()
 		.describe(
-			"The URL to redirect the user to create their account. If the token isn't valid or expired, it'll be redirected with a query parameter `?error=INVALID_TOKEN`. If the token is valid, it'll be redirected with a query parameter `?token=VALID_TOKEN",
+			"The URL to redirect the user to create their account. {callbackURL} will be replaced by the actual callbackURL in the request body.",
 		)
 		.optional(),
 	/**
 	 * The URL to redirect the user to upgrade their role.
+	 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
+	 *
 	 * @default options.defaultRedirectToSignIn
 	 */
 	redirectToSignIn: z
 		.string()
-		.describe("The URL to redirect the user to upgrade their role.")
+		.describe(
+			"The URL to redirect the user to upgrade their role. {callbackURL} will be replaced by the actual callbackURL in the request body.",
+		)
 		.optional(),
 	/**
 	 * The number of times an invitation can be used.
@@ -298,7 +307,7 @@ export const createInviteBodySchema = z.object({
 	 * The URL to redirect the user to after upgrade their role (if the user is already logged in).
 	 * {token} will be replaced with the user's actual token.
 	 *
-	 * @default options.defaultRedirectAfterUpgrade
+	 * @default /
 	 */
 	redirectToAfterUpgrade: z
 		.string()

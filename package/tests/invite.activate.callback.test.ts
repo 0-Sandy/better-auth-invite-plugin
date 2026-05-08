@@ -21,7 +21,7 @@ test("test activateInviteCallback with an invalid token", async ({
 
 	const { newError } = await activateInviteGet(client, {
 		token: "invalid_token",
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 	});
 
 	expect(newError).toStrictEqual({
@@ -71,7 +71,7 @@ test("test activateInviteCallback with maxUses set to 2", async ({
 
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers,
 		},
@@ -80,7 +80,7 @@ test("test activateInviteCallback with maxUses set to 2", async ({
 	expect(newError).toBe(null);
 
 	// We should be redirected to the invited page since we used the invitation successfully
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 
 	const newInvite = await db.findOne<InviteTypeWithId>({
 		model: "invite",
@@ -139,7 +139,7 @@ test("invite and inviteUses are deleted after reaching maxUses", async ({
 
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers,
 		},
@@ -148,7 +148,7 @@ test("invite and inviteUses are deleted after reaching maxUses", async ({
 	expect(newError).toBe(null);
 
 	// We should be redirected to the invited page since we used the invitation successfully
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 
 	const newInvite = await db.findOne({
 		model: "invite",
@@ -198,7 +198,7 @@ test("test activateInvite with an expired invite", async ({ createAuth }) => {
 
 	const { newError } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 	});
 
 	// Should throw an error because the invite has expired
@@ -253,14 +253,14 @@ test("activateInvite skips login step if already logged in", async ({
 	// We activate the invite while being logged in as the invited user
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers: newHeaders,
 		},
 	});
 
 	expect(newError).toBe(null);
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 });
 
 test("canAcceptInvite is called if it exists", async ({ createAuth }) => {
@@ -289,7 +289,7 @@ test("canAcceptInvite is called if it exists", async ({ createAuth }) => {
 
 	const { newError } = await activateInviteGet(client, {
 		token: token.data.message,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers,
 		},
@@ -349,14 +349,14 @@ test("onInvitationUsed is called with correct payload", async ({
 
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers: newHeaders,
 		},
 	});
 
 	expect(newError).toBe(null);
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 
 	expect(mock.onInvitationUsed).toHaveBeenCalledOnce();
 	expect(mock.onInvitationUsed).toHaveBeenCalledWith(
@@ -421,12 +421,12 @@ test("activate invite callback hooks run in the correct order with the expected 
 
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: { headers: newHeaders },
 	});
 
 	expect(newError).toBe(null);
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 
 	expect(mock.beforeAcceptInvite).toHaveBeenCalledTimes(1);
 	expect(mock.afterAcceptInvite).toHaveBeenCalledTimes(1);
@@ -442,7 +442,7 @@ test("activate invite callback hooks run in the correct order with the expected 
 				method: "GET",
 				params: expect.objectContaining({ token: tokenValue }),
 				query: expect.objectContaining({
-					callbackURL: "/auth/sign-in",
+					signInUpUrl: "/auth/sign-in",
 				}),
 				headers: expect.any(Headers),
 			}),
@@ -460,7 +460,7 @@ test("activate invite callback hooks run in the correct order with the expected 
 				method: "GET",
 				params: expect.objectContaining({ token: tokenValue }),
 				query: expect.objectContaining({
-					callbackURL: "/auth/sign-in",
+					signInUpUrl: "/auth/sign-in",
 				}),
 				headers: expect.any(Headers),
 			}),
@@ -531,7 +531,7 @@ test("throws error when using different email than invite email", async ({
 
 	const { newError } = await activateInviteGet(client, {
 		token,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers: newHeaders,
 		},
@@ -593,7 +593,7 @@ test("test activateInviteCallback with custom schema", async ({
 
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers,
 		},
@@ -602,7 +602,7 @@ test("test activateInviteCallback with custom schema", async ({
 	expect(newError).toBe(null);
 
 	// We should be redirected to the invited page since we used the invitation successfully
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 
 	const newInvite = await db.findOne<InviteTypeWithId>({
 		model: "custom-invite",
@@ -644,7 +644,6 @@ test("activateInviteCallback uses redirectAfterUpgrade", async ({
 	const token = await client.invite.create({
 		role: "owner",
 		senderResponse: "token",
-		redirectToAfterUpgrade: "/auth/invited?token={token}",
 		fetchOptions: {
 			headers,
 		},
@@ -665,7 +664,8 @@ test("activateInviteCallback uses redirectAfterUpgrade", async ({
 	// We activate the invite while being logged in as the invited user
 	const { newError, path, params } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		callbackUrl: "/auth/invited?token={token}",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers: newHeaders,
 		},
@@ -676,13 +676,12 @@ test("activateInviteCallback uses redirectAfterUpgrade", async ({
 	expect(params?.get("token")).toBe(tokenValue);
 });
 
-test("activateInviteCallback supports no redirectAfterUpgrade", async ({
+test("activateInviteCallback works with undefined callbackUrl", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			defaultRedirectAfterUpgrade: undefined,
 		},
 	});
 
@@ -728,7 +727,7 @@ test("activateInviteCallback supports no redirectAfterUpgrade", async ({
 	});
 
 	expect(newError).toBeNull();
-	expect(path).toBeNull(); // We shouldn't be redirected
+	expect(path).toBe("http://localhost:3000/");
 });
 
 test("works with old email field in db", async ({ createAuth }) => {
@@ -790,12 +789,12 @@ test("works with old email field in db", async ({ createAuth }) => {
 	// We activate the invite while being logged in as the invited user
 	const { newError, path } = await activateInviteGet(client, {
 		token: tokenValue,
-		callbackURL: "/auth/sign-in",
+		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
 			headers: newHeaders,
 		},
 	});
 
 	expect(newError).toBe(null);
-	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(path).toBe("http://localhost:3000/");
 });

@@ -242,7 +242,7 @@ test("returns URL when senderResponse is url", async ({ createAuth }) => {
 
 	expect(error).toBe(null);
 	expect(data?.message).toContain("/invite/");
-	expect(data?.message).toContain("callbackURL=");
+	expect(data?.message).toContain("callbackUrl=");
 });
 
 test("respects defaultSenderResponseRedirect = signIn", async ({
@@ -441,7 +441,7 @@ test("returns default api redirect URL when inviteUrlType is api", async ({
 
 	const token = data?.message.split("/invite/")[1].split("?")[0];
 
-	const expectedURL = `http://localhost:3000/api/auth/invite/${token}?callbackURL=%2Fauth%2Fsign-up`;
+	const expectedURL = `http://localhost:3000/api/auth/invite/${token}?signInUpUrl=%2Fauth%2Fsign-up&callbackUrl=%2F`;
 
 	expect(data?.message).toBe(expectedURL);
 });
@@ -449,7 +449,7 @@ test("returns default api redirect URL when inviteUrlType is api", async ({
 test("returns custom redirect URL when inviteUrlType is custom", async ({
 	createAuth,
 }) => {
-	const customInviteUrl = "/invite/{token}?redirect={callbackURL}";
+	const customInviteUrl = "/invite/{token}?redirect={callbackUrl}";
 
 	const { client, signInWithTestUser } = await createAuth({
 		pluginOptions: {
@@ -464,6 +464,7 @@ test("returns custom redirect URL when inviteUrlType is custom", async ({
 		role: "user",
 		senderResponse: "url",
 		customInviteUrl,
+		redirectToAfterUpgrade: "/auth/invited",
 		fetchOptions: { headers },
 	});
 
@@ -477,7 +478,7 @@ test("returns custom redirect URL when inviteUrlType is custom", async ({
 
 	const expectedURL = customInviteUrl
 		.replace("{token}", token)
-		.replace("{callbackURL}", "%2Fauth%2Fsign-up");
+		.replace("{callbackUrl}", "%2Fauth%2Finvited");
 
 	expect(data?.message).toBe(`http://localhost:3000/api/auth${expectedURL}`);
 });

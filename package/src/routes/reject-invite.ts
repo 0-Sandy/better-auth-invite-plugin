@@ -19,8 +19,20 @@ export const rejectInvite = (options: NewInviteOptions) => {
 			body: z.object({
 				/**
 				 * The invite token to reject.
+				 * {token} will be replaced by the actual token in the request body.
 				 */
-				token: z.string().describe("The invite token to reject."),
+				token: z
+					.string()
+					.describe(
+						"The invite token to reject. {token} will be replaced by the actual token in the request body.",
+					),
+				/**
+				 * Where to redirect the user after rejecting the invite..
+				 */
+				callbackURL: z
+					.string()
+					.optional()
+					.describe("Where to redirect the user after rejecting the invite."),
 			}),
 			metadata: {
 				openapi: {
@@ -69,7 +81,7 @@ export const rejectInvite = (options: NewInviteOptions) => {
 			},
 		},
 		async (ctx) => {
-			const { token } = ctx.body;
+			const { token, callbackURL } = ctx.body;
 			const inviteeUser = ctx.context.session.user as UserWithRole;
 
 			const adapter = getInviteAdapter(ctx.context, options);
@@ -80,10 +92,7 @@ export const rejectInvite = (options: NewInviteOptions) => {
 				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
-			const emails = normalizeEmails<string[]>(
-				invitation.emails ?? invitation.email,
-				[],
-			);
+			const emails = normalizeEmails(invitation.emails ?? invitation.email);
 			const isPrivate = emails.length > 0;
 
 			// Throws error if the invite is public or if the user email doesn’t match the invite
@@ -123,6 +132,10 @@ export const rejectInvite = (options: NewInviteOptions) => {
 			}
 
 			await options.inviteHooks?.afterRejectInvite?.({ ctx, invitation });
+
+			if (callbackURL) {
+				return ctx.redirect(callbackURL.replace("{token}", token));
+			}
 
 			return ctx.json({
 				status: true,

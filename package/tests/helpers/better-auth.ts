@@ -86,7 +86,6 @@ export const test = baseTest.extend<{
 
 export const defaultOptions: InviteOptions = {
 	defaultMaxUses: 1,
-	defaultRedirectAfterUpgrade: "/auth/invited",
 };
 
 export async function activateInviteGet(
@@ -94,11 +93,13 @@ export async function activateInviteGet(
 	client: any,
 	{
 		token,
-		callbackURL,
+		callbackUrl,
+		signInUpUrl,
 		fetchOptions: customFetchOptions,
 	}: {
 		token: string;
-		callbackURL?: string;
+		callbackUrl?: string;
+		signInUpUrl?: string;
 		fetchOptions?: Omit<ClientFetchOption, "params">;
 	},
 ): Promise<{
@@ -118,7 +119,8 @@ export async function activateInviteGet(
 
 	const res = await client.invite[":token"]({
 		query: {
-			callbackURL,
+			callbackUrl,
+			signInUpUrl,
 		},
 		fetchOptions: {
 			...customFetchOptions,

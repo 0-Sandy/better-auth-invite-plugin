@@ -11,7 +11,7 @@ import { setSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import type { admin, UserWithRole } from "better-auth/plugins";
 import type { InviteAdapter } from "./adapter";
-import { ERROR_CODES } from "./constants";
+import { defaultRedirectAfterUpgrade, ERROR_CODES } from "./constants";
 import type { CreateInvite } from "./routes/create-invite";
 import type {
 	InviteOptions,
@@ -58,10 +58,7 @@ export const consumeInvite = async ({
 	const { userId, token, timesUsed, newAccount } = meta;
 
 	// Normalize emails and detect private invite
-	const emails = normalizeEmails<string[]>(
-		invitation.emails ?? invitation.email,
-		[],
-	);
+	const emails = normalizeEmails(invitation.emails ?? invitation.email);
 	const isPrivate = emails.length > 0;
 
 	// Validate email for private invites
@@ -161,14 +158,27 @@ export function getMaxUses(invitation: InviteTypeWithId) {
  * // => ["a@test.com", "b@test.com"]
  *
  * @example
- * normalizeEmails(undefined, [])
+ * normalizeEmails(undefined)
  * // => []
+ *
+ * @example
+ * normalizeEmails(undefined, true)
+ * // => undefined
  */
-export function normalizeEmails<T = string[] | undefined>(
-	email: string | string[] | undefined = undefined,
-	undefinedVal: T = undefined as T,
-): string[] | T {
-	return email ? (Array.isArray(email) ? email : [email]) : undefinedVal;
+export function normalizeEmails<T extends boolean = false>(
+	email?: string | string[],
+	defaultUndefined?: T,
+	// Returns type string[] if defaultUndefined is false, otherwise returns string[] | undefined
+): T extends true ? string[] | undefined : string[] {
+	return (
+		email
+			? Array.isArray(email)
+				? email
+				: [email]
+			: defaultUndefined
+				? undefined
+				: []
+	) as never;
 }
 
 export const getDate = (span: number, unit: "sec" | "ms" = "ms") => {
@@ -259,28 +269,31 @@ const getPlugin = <P extends BetterAuthPlugin = BetterAuthPlugin>(
 export const createRedirectURL = ({
 	ctx,
 	invitation,
-	callbackURL,
+	signInUpUrl,
 	customInviteUrl,
 	email,
+	callbackUrl,
 }: {
 	ctx: GenericEndpointContext;
 	invitation: InviteTypeWithId;
-	callbackURL: string;
+	signInUpUrl: string;
 	customInviteUrl?: string;
 	email?: string;
+	callbackUrl: string;
 }) => {
 	const realBaseURL = new URL(ctx.context.baseURL);
 	const pathname = realBaseURL.pathname === "/" ? "" : realBaseURL.pathname;
 	const basePath = pathname ? "" : ctx.context.options.basePath || "";
 	// Default redirect URL with query parameters
 	// For private invites, we also include the email in the query params to pre-fill the sign-in/up form
-	let redirectUrl = `/invite/${invitation.token}?callbackURL=${encodeURIComponent(callbackURL)}${invitation.emails && invitation.emails.length > 0 ? `&email=${encodeURIComponent(email ?? "")}` : ""}`;
+	let redirectUrl = `/invite/${invitation.token}?signInUpUrl=${encodeURIComponent(signInUpUrl)}&callbackUrl=${encodeURIComponent(callbackUrl)}${invitation.emails && invitation.emails.length > 0 ? `&email=${encodeURIComponent(email ?? "")}` : ""}`;
 
 	if (customInviteUrl)
 		redirectUrl = customInviteUrl
 			.replace("{token}", invitation.token)
-			.replace("{callbackURL}", encodeURIComponent(callbackURL))
-			.replace("{email}", encodeURIComponent(email ?? ""));
+			.replace("{signInUpUrl}", encodeURIComponent(signInUpUrl))
+			.replace("{email}", encodeURIComponent(email ?? ""))
+			.replace("{callbackUrl}", encodeURIComponent(callbackUrl));
 
 	return new URL(
 		`${pathname}${basePath}/${redirectUrl.startsWith("/") ? redirectUrl.slice(1) : redirectUrl}`,
@@ -317,13 +330,13 @@ export const resolveInvitePayload = (
 	redirectToSignIn: body.redirectToSignIn ?? options.defaultRedirectToSignIn,
 	maxUses: body.maxUses ?? options.defaultMaxUses,
 	expiresIn: body.expiresIn ?? options.invitationTokenExpiresIn,
-	redirectToAfterUpgrade:
-		body.redirectToAfterUpgrade ?? options.defaultRedirectAfterUpgrade,
 	shareInviterName: body.shareInviterName ?? options.defaultShareInviterName,
 	senderResponse: body.senderResponse ?? options.defaultSenderResponse,
 	senderResponseRedirect:
 		body.senderResponseRedirect ?? options.defaultSenderResponseRedirect,
 	customInviteUrl: body.customInviteUrl ?? options.defaultCustomInviteUrl,
+	redirectToAfterUpgrade:
+		body.redirectToAfterUpgrade ?? defaultRedirectAfterUpgrade,
 });
 
 export const resolveTokenGenerator = (

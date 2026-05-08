@@ -32,7 +32,7 @@ export const getInviteAdapter = (
 			const payload = resolveInvitePayload(invite, options);
 			const generateToken = resolveTokenGenerator(payload.tokenType, options);
 
-			const emails = normalizeEmails<string[]>(invite.email, []);
+			const emails = normalizeEmails(invite.email);
 			const isPrivate = emails.length > 0;
 
 			const expiresAt = getDate(payload.expiresIn, "sec");
@@ -53,9 +53,8 @@ export const getInviteAdapter = (
 					expiresAt,
 					maxUses: isUnlimited ? 1 : (maxUses ?? 1),
 					infinityMaxUses: isUnlimited,
-					redirectToAfterUpgrade: payload.redirectToAfterUpgrade,
 					shareInviterName: payload.shareInviterName,
-					emails: normalizeEmails(invite.email),
+					emails: normalizeEmails(invite.email, true),
 					role: invite.role,
 					newAccount,
 					status: "pending",

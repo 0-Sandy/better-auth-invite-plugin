@@ -91,10 +91,7 @@ export const getInvite = (options: NewInviteOptions) => {
 				throw APIError.from("BAD_REQUEST", ERROR_CODES.INVALID_TOKEN);
 			}
 
-			const emails = normalizeEmails<string[]>(
-				invitation.emails ?? invitation.email,
-				[],
-			);
+			const emails = normalizeEmails(invitation.emails ?? invitation.email);
 			const isPrivate = emails.length > 0;
 
 			const session = await getSessionFromCtx(ctx);

@@ -45,6 +45,8 @@ export const invitesHooks = (options: NewInviteOptions) => {
 					const bodyValidation = z
 						.object({
 							inviteToken: z.string().optional(),
+							// Optional callback URL to redirect after accepting the invite
+							callbackUrl: z.string().optional(),
 						})
 						.safeParse(ctx.body);
 
@@ -52,9 +54,14 @@ export const invitesHooks = (options: NewInviteOptions) => {
 						? bodyValidation.data.inviteToken
 						: undefined;
 
-					let inviteToken = inviteTokenFromBody;
+					const callbackUrlFromBody = bodyValidation.success
+						? bodyValidation.data.callbackUrl
+						: undefined;
 
-					if (!inviteToken) {
+					let inviteToken = inviteTokenFromBody;
+					let callbackUrl = callbackUrlFromBody;
+
+					if (!inviteToken || !callbackUrl) {
 						// Fallback to the legacy cookie-based flow
 						const maxAge = options.inviteCookieMaxAge ?? 10 * 60;
 						const inviteCookie = ctx.context.createAuthCookie(
@@ -62,14 +69,20 @@ export const invitesHooks = (options: NewInviteOptions) => {
 							{ maxAge },
 						);
 
-						const cookieValue = await ctx.getSignedCookie(
+						const cookieValueString = await ctx.getSignedCookie(
 							inviteCookie.name,
 							ctx.context.secret,
 						);
 
-						if (!cookieValue) return;
+						if (!cookieValueString) return;
 
-						inviteToken = cookieValue;
+						const cookieValue = JSON.parse(cookieValueString) as {
+							token: string;
+							callbackUrl?: string;
+						};
+
+						inviteToken = cookieValue.token;
+						callbackUrl = cookieValue.callbackUrl;
 					}
 
 					if (!inviteToken) return;
@@ -150,10 +163,8 @@ export const invitesHooks = (options: NewInviteOptions) => {
 					});
 
 					// Redirect user after upgrading their role
-					const redirectURL = invitation.redirectToAfterUpgrade?.replace(
-						"{token}",
-						ctx.params.token,
-					);
+					//! We need to fix this, callbackUrl should also be saved in the invite, or in the cookie
+					const redirectURL = callbackUrl?.replace("{token}", ctx.params.token);
 
 					return ctx.redirect(redirectError(ctx.context, redirectURL));
 				}),

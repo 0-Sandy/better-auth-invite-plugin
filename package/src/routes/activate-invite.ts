@@ -8,7 +8,11 @@ import {
 import type { UserWithRole } from "better-auth/plugins";
 import * as z from "zod";
 import { getInviteAdapter } from "../adapter";
-import { ERROR_CODES, INVITE_COOKIE_NAME } from "../constants";
+import {
+	ERROR_CODES,
+	fullDefaultRedirectAfterUpgrade,
+	INVITE_COOKIE_NAME,
+} from "../constants";
 import type { NewInviteOptions } from "../types";
 import { consumeInvite, getMaxUses } from "../utils";
 
@@ -17,14 +21,30 @@ export const activateInvite = (options: NewInviteOptions) => {
 		"/invite/activate",
 		{
 			method: "POST",
-			use: [originCheck((ctx) => ctx.body.callbackURL)],
+			use: [
+				originCheck((ctx) => ctx.body.callbackUrl),
+				originCheck((ctx) => ctx.body.signInUpUrl),
+			],
 			body: z.object({
 				/**
-				 * Where to redirect the user after sing in/up
+				 * Where to redirect the user after activating the invite.
+				 * {token} will be replaced by the actual token in the request body.
+				 *
+				 * @default http://localhost:3000/
 				 */
-				callbackURL: z
+				callbackUrl: z
 					.string()
-					.describe("Where to redirect the user after sing in/up")
+					.describe(
+						"Where to redirect the user after activating the invite. {token} will be replaced by the actual token in the request body.",
+					)
+					.default(fullDefaultRedirectAfterUpgrade),
+				/**
+				 * Where to redirect the user to sign in/up.
+				 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
+				 */
+				signInUpUrl: z
+					.string()
+					.describe("The URL of the sign in/up page.")
 					.optional(),
 				/**
 				 * The invite token.
@@ -111,7 +131,12 @@ export const activateInvite = (options: NewInviteOptions) => {
 export const activateInviteLogic = async (
 	options: NewInviteOptions,
 	ctx: GenericEndpointContext,
-	body: { token: string; callbackURL?: string; email?: string },
+	body: {
+		token: string;
+		callbackUrl: string;
+		email?: string;
+		signInUpUrl?: string;
+	},
 ) => {
 	const adapter = getInviteAdapter(ctx.context, options);
 
@@ -177,10 +202,7 @@ export const activateInviteLogic = async (
 			status: true,
 			message: "Invite activated successfully",
 			action: "REDIRECT_TO_AFTER_UPGRADE",
-			redirectTo: invitation.redirectToAfterUpgrade?.replace(
-				"{token}",
-				invitation.token,
-			),
+			redirectTo: body.callbackUrl?.replace("{token}", invitation.token),
 		});
 	}
 
@@ -191,16 +213,20 @@ export const activateInviteLogic = async (
 
 	await ctx.setSignedCookie(
 		cookie.name,
-		body.token,
+		JSON.stringify({ token: body.token, callbackUrl: body.callbackUrl }),
 		ctx.context.secret,
 		cookie.attributes,
 	);
+
+	const redirectTo = (
+		body.signInUpUrl ?? options.defaultRedirectToSignIn
+	).replace("{callbackUrl}", body.callbackUrl ?? "");
 
 	return ctx.json({
 		status: true,
 		message: "Please sign in or sign up to continue.",
 		action: "SIGN_IN_UP_REQUIRED",
-		redirectTo: body.callbackURL ?? options.defaultRedirectToSignIn,
+		redirectTo,
 		email: body.email,
 	});
 };
