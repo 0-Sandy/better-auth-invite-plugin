@@ -29,7 +29,7 @@ export const rejectInvite = (options: NewInviteOptions) => {
 				/**
 				 * Where to redirect the user after rejecting the invite..
 				 */
-				callbackURL: z
+				callbackUrl: z
 					.string()
 					.optional()
 					.describe("Where to redirect the user after rejecting the invite."),
@@ -81,7 +81,7 @@ export const rejectInvite = (options: NewInviteOptions) => {
 			},
 		},
 		async (ctx) => {
-			const { token, callbackURL } = ctx.body;
+			const { token, callbackUrl } = ctx.body;
 			const inviteeUser = ctx.context.session.user as UserWithRole;
 
 			const adapter = getInviteAdapter(ctx.context, options);
@@ -133,8 +133,8 @@ export const rejectInvite = (options: NewInviteOptions) => {
 
 			await options.inviteHooks?.afterRejectInvite?.({ ctx, invitation });
 
-			if (callbackURL) {
-				return ctx.redirect(callbackURL.replace("{token}", token));
+			if (callbackUrl) {
+				return ctx.redirect(callbackUrl.replace("{token}", token));
 			}
 
 			return ctx.json({

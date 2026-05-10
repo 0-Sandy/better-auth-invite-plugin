@@ -286,14 +286,20 @@ export const createRedirectURL = ({
 	const basePath = pathname ? "" : ctx.context.options.basePath || "";
 	// Default redirect URL with query parameters
 	// For private invites, we also include the email in the query params to pre-fill the sign-in/up form
-	let redirectUrl = `/invite/${invitation.token}?signInUpUrl=${encodeURIComponent(signInUpUrl)}&callbackUrl=${encodeURIComponent(callbackUrl)}${invitation.emails && invitation.emails.length > 0 ? `&email=${encodeURIComponent(email ?? "")}` : ""}`;
+	const emailQuery =
+		invitation.emails && invitation.emails.length > 0
+			? `&email=${encodeURIComponent(email ?? "")}`
+			: "";
+	const urlQuery = `signInUpUrl=${encodeURIComponent(signInUpUrl)}&callbackUrl=${encodeURIComponent(callbackUrl)}${emailQuery}`;
+	let redirectUrl = `/invite/${invitation.token}?${urlQuery}`;
 
 	if (customInviteUrl)
 		redirectUrl = customInviteUrl
 			.replace("{token}", invitation.token)
 			.replace("{signInUpUrl}", encodeURIComponent(signInUpUrl))
 			.replace("{email}", encodeURIComponent(email ?? ""))
-			.replace("{callbackUrl}", encodeURIComponent(callbackUrl));
+			.replace("{callbackUrl}", encodeURIComponent(callbackUrl))
+			.replace("{defaultUrlQuery}", urlQuery);
 
 	return new URL(
 		`${pathname}${basePath}/${redirectUrl.startsWith("/") ? redirectUrl.slice(1) : redirectUrl}`,
@@ -336,7 +342,9 @@ export const resolveInvitePayload = (
 		body.senderResponseRedirect ?? options.defaultSenderResponseRedirect,
 	customInviteUrl: body.customInviteUrl ?? options.defaultCustomInviteUrl,
 	redirectToAfterUpgrade:
-		body.redirectToAfterUpgrade ?? defaultRedirectAfterUpgrade,
+		body.redirectToAfterUpgrade ??
+		options.defaultRedirectAfterUpgrade ??
+		defaultRedirectAfterUpgrade,
 });
 
 export const resolveTokenGenerator = (

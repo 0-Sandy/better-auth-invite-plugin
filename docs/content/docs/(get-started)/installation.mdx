@@ -36,7 +36,6 @@ export const auth = betterAuth({
       defaultRole: "user",
     }),
     invite({ // [!code highlight]
-      defaultRedirectAfterUpgrade: "/auth/invited?token={token}", // Show the user their new role or account
       async sendUserInvitation({ email, role, url, token, newAccount }) {
         if (newAccount)
           void sendInvitationEmail(role as RoleType, email, url);
@@ -79,7 +78,7 @@ See the [Schema](/docs/core/schema) section to add the fields manually.
 
 Add the client plugin to your better auth client.
 
-```ts
+```ts title="auth-client.ts"
 import { createAuthClient } from "better-auth/client";
 import { adminClient } from "better-auth/client/plugins";
 import { inviteClient } from "better-invite"; // [!code highlight]

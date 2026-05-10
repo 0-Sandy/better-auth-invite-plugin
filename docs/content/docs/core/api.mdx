@@ -44,6 +44,11 @@ type createInvite = {
 	 */
 	redirectToSignIn?: string
 	/**
+	 * The URL to redirect the user to after upgrade their role (after activating the invite).
+	 * @deprecated Use `redirectToAfterUpgrade` in the request body of `invite.create()` instead.
+	 */
+	defaultRedirectAfterUpgrade?: string;
+	/**
 	 * The number of times an invitation can be used.
    * 
    * @default options.defaultMaxUses
@@ -55,13 +60,6 @@ type createInvite = {
    * @default options.invitationTokenExpiresIn
 	 */
 	expiresIn?: number
-	/**
-	 * The URL to redirect the user to after upgrading their role (if the user is already logged in).
-	 * {token} will be replaced with the user's actual token.
-   * 
-   * @default options.defaultRedirectAfterUpgrade
-	 */
-	redirectToAfterUpgrade?: string
 	/**
 	 * Whether the inviter's name should be shared with the invitee.
 	 *
@@ -106,13 +104,25 @@ type createInvite = {
 ```ts
 type activateInvite = {
 	/**
-	 * Where to redirect the user after sing in/up
-	 */
+	 * Where to redirect the user after activating the invite.
+	 * {token} will be replaced by the actual token in the request body.
+	 *
+	 * @default http://localhost:3000/
+	*/
 	callbackURL?: string
+	/**
+	 * Where to redirect the user to sign in/up.
+	 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
+	*/
+	signInUpUrl?: string
   /**
    * The invite token
   */
   token: string
+	/**
+	 * The email address of the user to sign in/up to.
+	*/
+	email?: string
 }
 ```
 </APIMethod>
@@ -120,7 +130,7 @@ type activateInvite = {
 # Activate Invite Callback
 
 <Callout type="info" title="Note">
-  This endpoint is not recommended for direct usage. It exists mainly for internal use (e.g. the default link sent in invite emails).
+  This endpoint is **not recommended** for direct usage. It exists mainly for internal use (e.g. the default link sent in invite emails).
   The email link opens in the browser and triggers a `GET` request to `/api/auth/invite/{token}?callbackURL=...`.
   For most apps, you should use [Activate Invite](#activate-invite) instead.
 </Callout>
@@ -130,13 +140,25 @@ type activateInvite = {
 type activateInviteCallback = {
 	/**
 	 * Where to redirect the user after sing in/up
-	 */
+	 * {token} will be replaced by the actual token in the request body.
+	 *
+	 * @default http://localhost:3000/
+	*/
 	callbackURL?: string
-  /**
+	/**
+	 * Where to redirect the user to sign in/up.
+	 * {callbackUrl} will be replaced by the actual callbackUrl in the request body.
+	*/
+	signInUpUrl?: string
+	/**
    * @ignore
    * The invite token
   */
   token: string
+	/**
+	 * The email address of the user to sign in/up to.
+	*/
+	email?: string
 }
 ```
 </APIMethod>
@@ -146,6 +168,10 @@ type activateInviteCallback = {
 <APIMethod path="/invite/reject" method="POST" requireSession note="Only available for private invites.">
 ```ts
 type rejectInvite = {
+	/**
+	 * Where to redirect the user after rejecting the invite..
+	*/
+	callbackUrl?: string
   /**
    * The invite token to reject.
   */

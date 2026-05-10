@@ -57,22 +57,13 @@ const auth = betterAuth({
           modelName: "custom_invite",
           fields: {
             token: "custom_token", // token was the original name, but was changed to custom_token
-            createdAt: "created_at",
-            expiresAt: "expires_at",
-            maxUses: "max_uses",
-            createdByUserId: "creator_id",
-            redirectToAfterUpgrade: "redirect_url",
-            shareInviterName: "share_name",
-            email: "invite_email",
-            role: "invite_role",
+            createdAt: "customtest",
           }
         },
         inviteUse: {
           modelName: "customInviteUse",
           fields: {
-            inviteId: "invite_id",
-            usedAt: "usedAt",
-            usedByUserId: "used_by_user_id"
+            inviteId: "inviteId_test" // This can be whatever you want
           }
         }
       }

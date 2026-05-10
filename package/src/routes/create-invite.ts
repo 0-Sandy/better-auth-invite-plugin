@@ -304,15 +304,15 @@ export const createInviteBodySchema = z.object({
 		.describe("Number of seconds the invitation token is valid for.")
 		.optional(),
 	/**
-	 * The URL to redirect the user to after upgrade their role (if the user is already logged in).
-	 * {token} will be replaced with the user's actual token.
+	 * The URL to redirect the user to after upgrade their role (after activating the invite).
+	 * {token}, {signInUpUrl}, {email}, {callbackUrl} and {defaultUrlQuery} will be replaced with their respective values.
 	 *
 	 * @default /
 	 */
 	redirectToAfterUpgrade: z
 		.string()
 		.describe(
-			"The URL to redirect the user to after upgrade their role (if the user is already logged in)",
+			"The URL to redirect the user to after upgrade their role (after activating the invite)",
 		)
 		.optional(),
 	/**

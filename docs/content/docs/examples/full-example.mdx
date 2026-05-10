@@ -23,17 +23,18 @@ The idea is simple:
 
 ## Generate the invite link
 
-Use the option `defaultCustomInviteUrl` or `customInviteUrl` to generate a custom URL that includes the token.
+Use the option `redirectToAfterUpgrade` to generate a custom URL that includes the token and query parameters.
 
 <Callout>
-`{token}`, `{email}` and `{callbackUrl}` will be replaced with their respective values.
+`{token}`, `{signInUpUrl}`, `{email}`, `{callbackUrl}` and `{defaultUrlQuery}` will be replaced with their respective values.
+`{defaultUrlQuery}` is a placeholder for the default query parameters (`signInUpUrl`, `callbackUrl` and `email` if it's a private invite).
 </Callout>
 
 ```ts
-defaultCustomInviteUrl: '/invite/{token}?email={email}?callbackUrl={callbackUrl}'
+redirectToAfterUpgrade: '/invite/{token}?{defaultUrlQuery}',
 ```
 
-In `sendInvite`, simply send the custom url to the user:
+In `sendInvite`, simply send the URL (already customized with redirectToAfterUpgrade) to the user:
 
 ```ts
 async sendUserInvitation({ email, role, url }) {
@@ -41,7 +42,7 @@ async sendUserInvitation({ email, role, url }) {
 }
 ```
 
-This completely replaces the default url (`/api/invite/activate`).
+This completely replaces the default URL (`/api/invite/activate`).
 </Step>
 
 <Step>
@@ -64,12 +65,12 @@ When the page loads, check if the user is already authenticated:
 const { user } = authClient.getSession();
 ```
 
-- If the user is not authenticated, you redirect them to sign in/up, with a callback url that points back to the same page (`/invite/[token]`).
+- If the user is not authenticated, you redirect them to sign in/up (get it from the query param `signInUpUrl` the page received), with a callback url that points back to the same page (`/invite/[token]`).
 - If the user is authenticated, you can show the accept/reject buttons.
 
 <Callout title="Tip">
 When redirecting the user to the sign in/up page, you can include a custom email query param
-to prefill the email field, make sure to implement the login in your UI to support this.
+to prefill the email field (this only works if the invite is private), make sure to implement the login in your UI to support this.
 </Callout>
 
 </Step>
@@ -80,7 +81,7 @@ to prefill the email field, make sure to implement the login in your UI to suppo
 Now that the user is authenticated and clicks **Accept** you can call the activation endpoint:
 
 ```ts
-const res = await authClient.invite.activate({ token });
+await authClient.invite.activate({ token, callbackUrl, signInUpUrl });
 ```
 
 </Step>
@@ -91,7 +92,7 @@ const res = await authClient.invite.activate({ token });
 If the user clicks **Reject**:
 
 ```ts
-await authClient.invite.reject({ token });
+await authClient.invite.reject({ token, callbackUrl });
 ```
 </Step>
 
@@ -99,7 +100,7 @@ await authClient.invite.reject({ token });
 
 ## Redirect to after upgrade
 
-Now that the user has accepted or rejected the invite, you can redirect them to the appropriate page. Use `callbackUrl` in activate/reject to specify where to redirect the user after accepting or rejecting the invite.
+Now that the user has accepted or rejected the invite, `invite.activate()` and `invite.reject()` will create a redirect URL using the input `callbackUrl`
 
 </Step>
 
@@ -109,21 +110,10 @@ Now that the user has accepted or rejected the invite, you can redirect them to 
 - Generate link: `/invite/${token}`
 - Show your custom UI
 - If accepted:
-  - call `activate()`
+  - call `invite.activate()`
   - if auth is required → redirect using `redirectTo`
 - If rejected:
-  - call `reject()`
-  - redirect manually
+  - call `invite.reject()`
+  - make sure the user is already authenticated, otherwise the API will return an error
 </Step>
 </Steps>
-
----
-
-## Notes
-
-- You do NOT need to manually resume the flow after login
-- The plugin automatically continues after authentication
-- This approach is ideal for:
-  - better onboarding UX
-  - full control over the flow
-  - role or membership-based apps

@@ -111,6 +111,11 @@ export type InviteOptions = {
 	 */
 	defaultRedirectToSignIn?: string;
 	/**
+	 * The URL to redirect the user to after upgrade their role (after activating the invite).
+	 * @deprecated Use `redirectToAfterUpgrade` in the request body of `invite.create()` instead.
+	 */
+	defaultRedirectAfterUpgrade?: string;
+	/**
 	 * Whether the inviter's name should be shared with the invitee by default.
 	 *
 	 * When enabled, the person receiving the invitation will see

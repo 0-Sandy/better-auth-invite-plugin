@@ -14,34 +14,21 @@ Example:
 ```ts
 const res = authClient.invite.create({
 	role: "user",
-	email: "test@test.com" // If email is present, the invite is private
+	emails: ["test@test.com"], // Since an email is present, the invite is private
+  redirectToAfterUpgrade: "/invite/accepted", // Optional: redirect the user to this URL after accepting the invite and upgrading their role or account
 })
 ```
 
-If the invite is private, the plugin will send an email to the user with the invite link (see [Activate Invite Callback](/docs/core/api#activate-invite-callback)).
-The response from `invite.create()` depends on whether the invite is **public** or **private**:
+<Callout>
+A private invite can have multiple emails, the invite works the same as a normal private invite but any of the emails listed can use the invite.
+Internally, the plugin creates **only one invite** for all the users, with the same email, and sends an invite link
+(it's not the same for all users, since it includes a ?email=... query) to all the emails provided.
+But don't worry, if one user accepts or rejects the invite, doesn't mean the invite will be consumed for the other users, only that specific email will
+be marked as having accepted or rejected the invite, and the other emails can still use the invite until they also accept or reject it.
+This is secure because the invite 
+</Callout>
 
-### Public invite
-
-No email is sent, and the API returns the invite **token or URL** (depending on your `senderResponse` config):
-
-```ts
-{
-  status: true,
-  message: "token", // The invite token or URL
-}
-```
-
-### Private invite
-
-The plugin will send an invite email, and the response will be:
-
-```ts
-{
-  status: true,
-  message: "The invitation was sent",
-}
-```
+If the invite is private, the plugin will send an email to the user (or users) with the invite link (see [Activate Invite Callback](/docs/core/api#activate-invite-callback)).
 
 # Activating an invite
 
@@ -54,33 +41,8 @@ Example:
 
 ```ts
 const res = await authClient.invite.activate({
-  callbackURL: "/auth/sign-in-or-sign-up", // The user will be redirected here if they need to sign in or sign up
+  signInUpUrl: "/auth/sign-in-or-sign-up", // The user will be redirected here if they need to sign in or sign up
+  callbackUrl: "/invite/accepted", // The user will be redirected here after accepting the invite
   token: "token123",
 });
-```
-
-## If the user is not signed in
-
-The API returns:
-
-```ts
-{
-  status: true,
-  message: "Invite activated successfully",
-  action: "SIGN_IN_UP_REQUIRED",
-  redirectTo: "/auth/sign-in-or-sign-up",
-}
-```
-
-At this point, redirect the user to `redirectTo` and perform sign in or sign up. After that, the plugin will automatically activate the invite using a hook, reading the invite data from the cookie. **No further response is returned from the hook**—it just completes the activation once the user has a session.
-
-## If the user is already signed in
-
-The API returns:
-
-```ts
-{
-  status: true,
-  message: "Invite activated successfully",
-}
 ```

@@ -2,7 +2,6 @@ import { findSiblings } from "fumadocs-core/page-tree";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { GithubInfo } from "fumadocs-ui/components/github-info";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "fumadocs-ui/components/type-table";
@@ -115,13 +114,6 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 						Tabs,
 						Tab,
 						APIMethod,
-						GithubInfo: (props) => (
-							<GithubInfo
-								owner={gitConfig.user}
-								repo={gitConfig.repo}
-								{...props}
-							/>
-						),
 						TypeTable,
 						Accordions,
 						Accordion,
@@ -142,7 +134,7 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 			<Feedback onSendAction={onPageFeedbackAction}>
 				<div className="flex flex-row items-center flex-wrap gap-y-2 gap-x-4">
 					<Link
-						href="https://patreon.better-invite.com"
+						href="https://patreon.better-invite.com/membership"
 						target="_blank"
 						rel="noreferrer noopener"
 						className={buttonVariants({
