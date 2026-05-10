@@ -3,7 +3,7 @@ import * as z from "zod";
 import { fullDefaultRedirectAfterUpgrade } from "../constants";
 import type { NewInviteOptions } from "../types";
 import { redirectCallback, redirectError } from "../utils";
-import { activateInviteLogic } from "./activate-invite";
+import { acceptInviteLogic } from "./accept-invite";
 
 /**
  * This endpoint is what runs when a user clicks an invite link (from email, for example).
@@ -11,12 +11,12 @@ import { activateInviteLogic } from "./activate-invite";
  * It doesn't implement the invite logic itself. Instead, it acts as a bridge:
  *
  * - It takes a browser request (GET + query params)
- * - Calls the core logic (activateInviteLogic)
+ * - Calls the core logic (acceptInviteLogic)
  * - Converts the result into a redirect
  *
  * Think of it as a "bridge" between JSON responses and browser redirects.
  */
-export const activateInviteCallback = (options: NewInviteOptions) => {
+export const acceptInviteCallback = (options: NewInviteOptions) => {
 	return createAuthEndpoint(
 		"/invite/:token",
 		{
@@ -54,7 +54,7 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 			}),
 			metadata: {
 				openapi: {
-					operationId: "activateInviteCallback",
+					operationId: "acceptInviteCallback",
 					description:
 						"Redirects the user to the callback URL with the token in a cookie. If an error occurs, the user is redirected to the callback URL with the query parameters 'error' and 'message'.",
 					parameters: [
@@ -95,10 +95,10 @@ export const activateInviteCallback = (options: NewInviteOptions) => {
 			},
 		},
 		async (ctx) => {
-			let res: Awaited<ReturnType<typeof activateInviteLogic>> | null = null;
+			let res: Awaited<ReturnType<typeof acceptInviteLogic>> | null = null;
 			try {
 				// Run the real invite logic
-				res = await activateInviteLogic(options, ctx, {
+				res = await acceptInviteLogic(options, ctx, {
 					...ctx.params,
 					...ctx.query,
 				});

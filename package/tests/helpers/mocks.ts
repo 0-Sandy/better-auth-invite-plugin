@@ -22,6 +22,7 @@ const beforeAcceptInvite = vi.fn();
 const afterAcceptInvite = vi.fn();
 const beforeRejectInvite = vi.fn();
 const afterRejectInvite = vi.fn();
+const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
 export default {
 	test_token,
@@ -43,4 +44,5 @@ export default {
 	afterAcceptInvite,
 	beforeRejectInvite,
 	afterRejectInvite,
+	warnSpy,
 };

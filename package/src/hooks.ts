@@ -163,7 +163,6 @@ export const invitesHooks = (options: NewInviteOptions) => {
 					});
 
 					// Redirect user after upgrading their role
-					//! We need to fix this, callbackUrl should also be saved in the invite, or in the cookie
 					const redirectURL = callbackUrl?.replace("{token}", ctx.params.token);
 
 					return ctx.redirect(redirectError(ctx.context, redirectURL));

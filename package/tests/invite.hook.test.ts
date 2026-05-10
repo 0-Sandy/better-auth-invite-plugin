@@ -1,6 +1,7 @@
 import { setCookieToHeader } from "better-auth/cookies";
 import { beforeEach, expect, vi } from "vitest";
 import {
+	acceptInviteGet,
 	defaultOptions,
 	resolveInviteRedirect,
 	test,
@@ -51,23 +52,18 @@ test("test invite hook after sign-in/email", async ({ createAuth }) => {
 
 	const newHeaders = new Headers();
 
-	const { error, data } = await client.invite.activate({
+	const { newError, path: acceptPath } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
-			onSuccess(context) {
+			onResponse(context) {
 				setCookieToHeader(newHeaders)(context);
 			},
 		},
 	});
 
-	expect(data).toStrictEqual({
-		status: true,
-		message: "Please sign in or sign up to continue.",
-		action: "SIGN_IN_UP_REQUIRED",
-		redirectTo: "/auth/sign-in",
-	});
-	expect(error).toBe(null);
+	expect(acceptPath).toBe("http://localhost:3000/auth/sign-in");
+	expect(newError).toBe(null);
 
 	const { path } = await resolveInviteRedirect(client.signIn.email, {
 		...invitedUser,

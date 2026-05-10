@@ -1,9 +1,8 @@
-//! DEPRECATED
 import { setCookieToHeader } from "better-auth/cookies";
 import { beforeEach, expect, vi } from "vitest";
 import type { InviteTypeWithId } from "../src/types";
-import * as utils from "../src/utils";
 import {
+	acceptInviteGet,
 	defaultOptions,
 	resolveInviteRedirect,
 	test,
@@ -15,31 +14,31 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-// Activate Invite (POST) Tests
+// Accept Invite Callback (GET) Tests
 
-test("test activateInvite with an invalid token", async ({ createAuth }) => {
+test("test acceptInviteCallback with an invalid token", async ({
+	createAuth,
+}) => {
 	const { client } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
 		},
 	});
-	const { error } = await client.invite.activate({
+
+	const { newError } = await acceptInviteGet(client, {
 		token: "invalid_token",
 		signInUpUrl: "/auth/sign-in",
 	});
 
-	// Should throw an error because the invite token is invalid
-	expect(error).toStrictEqual({
-		code: "INVALID_TOKEN",
+	expect(newError).toStrictEqual({
+		error: "INVALID_TOKEN",
 		message: "Invalid or non-existent token",
-		status: 400,
-		statusText: "BAD_REQUEST",
 	});
-
-	expect(mock.warnSpy).toHaveBeenCalled(); // Expect a warning to be logged about the deprecation of activateInvite
 });
 
-test("test activateInvite with maxUses set to 2", async ({ createAuth }) => {
+test("test acceptInviteCallback with maxUses set to 2", async ({
+	createAuth,
+}) => {
 	const { client, db, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
@@ -76,7 +75,7 @@ test("test activateInvite with maxUses set to 2", async ({ createAuth }) => {
 
 	const inviteId = invite.id;
 
-	const { error, data } = await client.invite.activate({
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -84,13 +83,10 @@ test("test activateInvite with maxUses set to 2", async ({ createAuth }) => {
 		},
 	});
 
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
+	expect(newError).toBe(null);
+
+	// We should be redirected to the invited page since we used the invitation successfully
+	expect(path).toBe("http://localhost:3000/");
 
 	const newInvite = await db.findOne<InviteTypeWithId>({
 		model: "invite",
@@ -147,7 +143,7 @@ test("invite and inviteUses are deleted after reaching maxUses", async ({
 
 	const inviteId = invite.id;
 
-	const { error, data } = await client.invite.activate({
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -155,13 +151,10 @@ test("invite and inviteUses are deleted after reaching maxUses", async ({
 		},
 	});
 
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
+	expect(newError).toBe(null);
+
+	// We should be redirected to the invited page since we used the invitation successfully
+	expect(path).toBe("http://localhost:3000/");
 
 	const newInvite = await db.findOne({
 		model: "invite",
@@ -182,7 +175,7 @@ test("invite and inviteUses are deleted after reaching maxUses", async ({
 	expect(inviteUses).toBe(1);
 });
 
-test("test activateInvite with an expired invite", async ({ createAuth }) => {
+test("test acceptInvite with an expired invite", async ({ createAuth }) => {
 	const { client, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
@@ -209,21 +202,19 @@ test("test activateInvite with an expired invite", async ({ createAuth }) => {
 		throw new Error("Token value is undefined");
 	}
 
-	const { error } = await client.invite.activate({
+	const { newError } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 	});
 
 	// Should throw an error because the invite has expired
-	expect(error).toStrictEqual({
-		code: "INVALID_OR_EXPIRED_INVITE",
+	expect(newError).toStrictEqual({
+		error: "INVALID_OR_EXPIRED_INVITE",
 		message: "Invalid or expired invite code",
-		status: 400,
-		statusText: "BAD_REQUEST",
 	});
 });
 
-test("activateInvite skips login step if already logged in", async ({
+test("acceptInvite skips login step if already logged in", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
@@ -265,8 +256,8 @@ test("activateInvite skips login step if already logged in", async ({
 		throw new Error("Token value is undefined");
 	}
 
-	// We activate the invite while being logged in as the invited user
-	const { error, data } = await client.invite.activate({
+	// We accept the invite while being logged in as the invited user
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -274,90 +265,7 @@ test("activateInvite skips login step if already logged in", async ({
 		},
 	});
 
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
-});
-
-test("activateInvite uses custom cookie names", async ({ createAuth }) => {
-	const { client, signInWithTestUser, db } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-		},
-		advancedOptions: {
-			cookies: {
-				invite_token: {
-					name: "invite_test",
-				},
-			},
-		},
-	});
-
-	const invitedUser = {
-		email: "test@email.com",
-		role: "user",
-		name: "Test User",
-		password: "12345678",
-	};
-
-	// Create a new user
-	await createUser(invitedUser, db);
-
-	const { headers } = await signInWithTestUser();
-
-	// This should be a role upgrade, because user already exists
-	const token = await client.invite.create({
-		role: "owner",
-		senderResponse: "token",
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(token.error).toBe(null);
-	const tokenValue = token.data?.message;
-
-	if (!tokenValue) {
-		throw new Error("Token value is undefined");
-	}
-
-	const newHeaders = new Headers();
-
-	// We activate the invite while being logged in as the invited user
-	const { error, data } = await client.invite.activate({
-		token: tokenValue,
-		signInUpUrl: "/auth/sign-in",
-		fetchOptions: {
-			async onResponse(context) {
-				setCookieToHeader(newHeaders)(context);
-			},
-		},
-	});
-
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		message: "Please sign in or sign up to continue.",
-		action: "SIGN_IN_UP_REQUIRED",
-		redirectTo: "/auth/sign-in",
-	});
-
-	const cookieHeader = newHeaders.get("cookie");
-	expect(cookieHeader).not.toBeNull();
-	expect(cookieHeader?.startsWith("invite_test=")).toBe(true);
-
-	const { path } = await resolveInviteRedirect(client.signIn.email, {
-		email: invitedUser.email,
-		password: invitedUser.password,
-		fetchOptions: {
-			headers: newHeaders,
-		},
-	});
-
+	expect(newError).toBe(null);
 	expect(path).toBe("http://localhost:3000/");
 });
 
@@ -385,7 +293,7 @@ test("canAcceptInvite is called if it exists", async ({ createAuth }) => {
 		throw new Error("Token value is undefined");
 	}
 
-	const { error } = await client.invite.activate({
+	const { newError } = await acceptInviteGet(client, {
 		token: token.data.message,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -395,76 +303,9 @@ test("canAcceptInvite is called if it exists", async ({ createAuth }) => {
 
 	expect(mock.canAcceptInvite).toHaveBeenCalledOnce();
 	// Should throw an error because canAcceptInviteMock returns false
-	expect(error).toStrictEqual({
-		code: "CANT_ACCEPT_INVITE",
+	expect(newError).toStrictEqual({
+		error: "CANT_ACCEPT_INVITE",
 		message: "You cannot accept this invite",
-		status: 400,
-		statusText: "BAD_REQUEST",
-	});
-});
-
-test("canAcceptInvite supports Permissions objects", async ({ createAuth }) => {
-	const checkPermissionsSpy = vi
-		.spyOn(utils, "checkPermissions")
-		.mockResolvedValue(false);
-
-	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-			canAcceptInvite: {
-				statement: "invite",
-				permissions: ["accept"],
-			},
-		},
-	});
-
-	const invitedUser = {
-		email: "test@email.com",
-		role: "user",
-		name: "Test User",
-		password: "12345678",
-	};
-
-	// Create a new user
-	createUser(invitedUser, db);
-
-	const { headers } = await signInWithTestUser();
-
-	const token = await client.invite.create({
-		role: "admin",
-		senderResponse: "token",
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(token.error).toBe(null);
-
-	const { headers: newHeaders } = await signInWithUser(
-		invitedUser.email,
-		invitedUser.password,
-	);
-
-	const tokenValue = token.data?.message;
-	if (!tokenValue) {
-		throw new Error("Token value is undefined");
-	}
-
-	const res = await client.invite.activate({
-		token: tokenValue,
-		signInUpUrl: "/auth/sign-in",
-		fetchOptions: {
-			headers: newHeaders,
-		},
-	});
-
-	expect(checkPermissionsSpy).toHaveBeenCalledOnce();
-	expect(res.data).toBeNull();
-	expect(res.error).toStrictEqual({
-		code: "CANT_ACCEPT_INVITE",
-		message: "You cannot accept this invite",
-		status: 400,
-		statusText: "BAD_REQUEST",
 	});
 });
 
@@ -512,7 +353,7 @@ test("onInvitationUsed is called with correct payload", async ({
 		throw new Error("Token value is undefined");
 	}
 
-	const { error, data } = await client.invite.activate({
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -520,13 +361,8 @@ test("onInvitationUsed is called with correct payload", async ({
 		},
 	});
 
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
+	expect(newError).toBe(null);
+	expect(path).toBe("http://localhost:3000/");
 
 	expect(mock.onInvitationUsed).toHaveBeenCalledOnce();
 	expect(mock.onInvitationUsed).toHaveBeenCalledWith(
@@ -546,7 +382,7 @@ test("onInvitationUsed is called with correct payload", async ({
 	);
 });
 
-test("activate invite hooks run in the correct order with the expected arguments", async ({
+test("accept invite callback hooks run in the correct order with the expected arguments", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
@@ -589,19 +425,14 @@ test("activate invite hooks run in the correct order with the expected arguments
 		throw new Error("Token value is undefined");
 	}
 
-	const { error, data } = await client.invite.activate({
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: { headers: newHeaders },
 	});
 
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
+	expect(newError).toBe(null);
+	expect(path).toBe("http://localhost:3000/");
 
 	expect(mock.beforeAcceptInvite).toHaveBeenCalledTimes(1);
 	expect(mock.afterAcceptInvite).toHaveBeenCalledTimes(1);
@@ -613,10 +444,10 @@ test("activate invite hooks run in the correct order with the expected arguments
 	expect(mock.beforeAcceptInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
 			ctx: expect.objectContaining({
-				path: "/invite/activate",
-				method: "POST",
-				body: expect.objectContaining({
-					token: tokenValue,
+				path: "/invite/:token",
+				method: "GET",
+				params: expect.objectContaining({ token: tokenValue }),
+				query: expect.objectContaining({
 					signInUpUrl: "/auth/sign-in",
 				}),
 				headers: expect.any(Headers),
@@ -631,10 +462,10 @@ test("activate invite hooks run in the correct order with the expected arguments
 	expect(mock.afterAcceptInvite).toHaveBeenCalledWith(
 		expect.objectContaining({
 			ctx: expect.objectContaining({
-				path: "/invite/activate",
-				method: "POST",
-				body: expect.objectContaining({
-					token: tokenValue,
+				path: "/invite/:token",
+				method: "GET",
+				params: expect.objectContaining({ token: tokenValue }),
+				query: expect.objectContaining({
 					signInUpUrl: "/auth/sign-in",
 				}),
 				headers: expect.any(Headers),
@@ -679,7 +510,7 @@ test("throws error when using different email than invite email", async ({
 
 	const { headers } = await signInWithTestUser();
 
-	const res = await client.invite.create({
+	const { error } = await client.invite.create({
 		role: newRole,
 		email: fakeEmail,
 		fetchOptions: {
@@ -687,7 +518,7 @@ test("throws error when using different email than invite email", async ({
 		},
 	});
 
-	expect(res.error).toBe(null);
+	expect(error).toBe(null);
 
 	const { headers: newHeaders } = await signInWithUser(
 		invitedUser.email,
@@ -704,7 +535,7 @@ test("throws error when using different email than invite email", async ({
 		throw new Error("Token value is undefined");
 	}
 
-	const { error } = await client.invite.activate({
+	const { newError } = await acceptInviteGet(client, {
 		token,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -713,15 +544,13 @@ test("throws error when using different email than invite email", async ({
 	});
 
 	// Should throw an error because the logged in user's email doesn't match
-	expect(error).toStrictEqual({
-		code: "INVALID_EMAIL",
+	expect(newError).toStrictEqual({
+		error: "INVALID_EMAIL",
 		message: "This token is for a specific email, this is not it",
-		status: 400,
-		statusText: "BAD_REQUEST",
 	});
 });
 
-test("test activateInvite with custom schema", async ({ createAuth }) => {
+test("test acceptInviteCallback with custom schema", async ({ createAuth }) => {
 	const { client, db, signInWithTestUser } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
@@ -766,7 +595,7 @@ test("test activateInvite with custom schema", async ({ createAuth }) => {
 
 	const inviteId = invite.id;
 
-	const { error, data } = await client.invite.activate({
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
 		fetchOptions: {
@@ -774,13 +603,10 @@ test("test activateInvite with custom schema", async ({ createAuth }) => {
 		},
 	});
 
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
+	expect(newError).toBe(null);
+
+	// We should be redirected to the invited page since we used the invitation successfully
+	expect(path).toBe("http://localhost:3000/");
 
 	const newInvite = await db.findOne<InviteTypeWithId>({
 		model: "custom-invite",
@@ -797,199 +623,7 @@ test("test activateInvite with custom schema", async ({ createAuth }) => {
 	expect(newInvite).not.toBeNull();
 });
 
-test("test activateInvite with infiniteMaxUses", async ({ createAuth }) => {
-	const { client, db, signInWithTestUser } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-			defaultMaxUses: undefined,
-		},
-	});
-
-	const { headers } = await signInWithTestUser();
-
-	// MaxUses should be Infinite, because the invite is public and we are not overwriting the default value
-	const token = await client.invite.create({
-		role: "owner",
-		senderResponse: "token",
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(token.error).toBe(null);
-
-	const tokenValue = token.data?.message;
-	if (!tokenValue) {
-		throw new Error("Token value is undefined");
-	}
-
-	const invite = await db.findOne<InviteTypeWithId>({
-		model: "invite",
-		where: [{ field: "token", value: tokenValue }],
-	});
-
-	if (!invite) {
-		throw new Error("Invite not found");
-	}
-
-	expect(invite.infinityMaxUses).toBe(true);
-
-	const inviteId = invite.id;
-
-	const { error, data } = await client.invite.activate({
-		token: tokenValue,
-		signInUpUrl: "/auth/sign-in",
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
-
-	const newInvite = await db.findOne<InviteTypeWithId>({
-		model: "invite",
-		where: [{ field: "token", value: tokenValue }],
-	});
-
-	const inviteUses = await db.count({
-		model: "inviteUse",
-		where: [{ field: "inviteId", value: inviteId }],
-	});
-
-	// It should still exist because maxUses is infinite
-	expect(inviteUses).toBe(1);
-	expect(newInvite).toMatchObject({
-		token: tokenValue,
-		status: "pending",
-		infinityMaxUses: true,
-	});
-});
-
-test("activateInvite uses callbackUrl", async ({ createAuth }) => {
-	const { client, signInWithTestUser, signInWithUser, db } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-		},
-	});
-
-	const invitedUser = {
-		email: "test@email.com",
-		role: "user",
-		name: "Test User",
-		password: "12345678",
-	};
-
-	// Create a new user
-	await createUser(invitedUser, db);
-
-	const { headers } = await signInWithTestUser();
-
-	// This should be a role upgrade, because user already exists
-	const token = await client.invite.create({
-		role: "owner",
-		senderResponse: "token",
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(token.error).toBe(null);
-	const tokenValue = token.data?.message;
-
-	if (!tokenValue) {
-		throw new Error("Token value is undefined");
-	}
-
-	const { headers: newHeaders } = await signInWithUser(
-		invitedUser.email,
-		invitedUser.password,
-	);
-
-	// We activate the invite while being logged in as the invited user
-	const { error, data } = await client.invite.activate({
-		token: tokenValue,
-		signInUpUrl: "/auth/sign-in",
-		callbackUrl: "/auth/invited/{token}",
-		fetchOptions: {
-			headers: newHeaders,
-		},
-	});
-
-	expect(error).toBeNull();
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: `/auth/invited/${tokenValue}`,
-	});
-});
-
-test("activateInvite supports no redirectAfterUpgrade", async ({
-	createAuth,
-}) => {
-	const { client, signInWithTestUser, signInWithUser, db } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-		},
-	});
-
-	const invitedUser = {
-		email: "test@email.com",
-		role: "user",
-		name: "Test User",
-		password: "12345678",
-	};
-
-	// Create a new user
-	await createUser(invitedUser, db);
-
-	const { headers } = await signInWithTestUser();
-
-	// This should be a role upgrade, because user already exists
-	const token = await client.invite.create({
-		role: "owner",
-		senderResponse: "token",
-		fetchOptions: {
-			headers,
-		},
-	});
-
-	expect(token.error).toBe(null);
-	const tokenValue = token.data?.message;
-
-	if (!tokenValue) {
-		throw new Error("Token value is undefined");
-	}
-
-	const { headers: newHeaders } = await signInWithUser(
-		invitedUser.email,
-		invitedUser.password,
-	);
-
-	// We activate the invite while being logged in as the invited user
-	const { error, data } = await client.invite.activate({
-		token: tokenValue,
-		fetchOptions: {
-			headers: newHeaders,
-		},
-	});
-
-	expect(error).toBeNull();
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
-});
-
-test("cannot reuse an invite after it has already been used", async ({
+test("acceptInviteCallback uses redirectAfterUpgrade", async ({
 	createAuth,
 }) => {
 	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
@@ -999,72 +633,105 @@ test("cannot reuse an invite after it has already been used", async ({
 	});
 
 	const invitedUser = {
-		email: "reuse@email.com",
+		email: "test@email.com",
 		role: "user",
-		name: "Reuse User",
+		name: "Test User",
 		password: "12345678",
 	};
 
+	// Create a new user
 	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
-	// Create invite with maxUses = 1
-	const tokenRes = await client.invite.create({
-		role: "admin",
+	// This should be a role upgrade, because user already exists
+	const token = await client.invite.create({
+		role: "owner",
 		senderResponse: "token",
-		maxUses: 1,
-		fetchOptions: { headers },
+		fetchOptions: {
+			headers,
+		},
 	});
 
-	expect(tokenRes.error).toBeNull();
+	expect(token.error).toBe(null);
 
-	const tokenValue = tokenRes.data?.message;
+	const { headers: newHeaders } = await signInWithUser(
+		invitedUser.email,
+		invitedUser.password,
+	);
+	const tokenValue = token.data?.message;
+
 	if (!tokenValue) {
 		throw new Error("Token value is undefined");
 	}
 
-	const { headers: invitedHeaders } = await signInWithUser(
+	// We accept the invite while being logged in as the invited user
+	const { newError, path, params } = await acceptInviteGet(client, {
+		token: tokenValue,
+		callbackUrl: "/auth/invited?token={token}",
+		signInUpUrl: "/auth/sign-in",
+		fetchOptions: {
+			headers: newHeaders,
+		},
+	});
+
+	expect(newError).toBe(null);
+	expect(path).toBe("http://localhost:3000/auth/invited");
+	expect(params?.get("token")).toBe(tokenValue);
+});
+
+test("acceptInviteCallback works with undefined callbackUrl", async ({
+	createAuth,
+}) => {
+	const { client, db, signInWithTestUser, signInWithUser } = await createAuth({
+		pluginOptions: {
+			...defaultOptions,
+		},
+	});
+
+	const invitedUser = {
+		email: "test@email.com",
+		role: "user",
+		name: "Test User",
+		password: "12345678",
+	};
+
+	// Create a new user
+	await createUser(invitedUser, db);
+
+	const { headers } = await signInWithTestUser();
+
+	// This should be a role upgrade, because user already exists
+	const token = await client.invite.create({
+		role: "owner",
+		senderResponse: "token",
+		fetchOptions: {
+			headers,
+		},
+	});
+
+	expect(token.error).toBeNull();
+
+	const { headers: newHeaders } = await signInWithUser(
 		invitedUser.email,
 		invitedUser.password,
 	);
+	const tokenValue = token.data?.message;
 
-	// First activation (should succeed)
-	const firstUse = await client.invite.activate({
+	if (!tokenValue) {
+		throw new Error("Token value is undefined");
+	}
+
+	// We accept the invite while being logged in as the invited user
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
-		signInUpUrl: "/auth/sign-in",
-		fetchOptions: { headers: invitedHeaders },
+		fetchOptions: {
+			headers: newHeaders,
+		},
 	});
 
-	expect(firstUse.error).toBeNull();
-	expect(firstUse.data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
-
-	// Second activation (should fail)
-	const secondUse = await client.invite.activate({
-		token: tokenValue,
-		signInUpUrl: "/auth/sign-in",
-		fetchOptions: { headers: invitedHeaders },
-	});
-
-	expect(secondUse.data).toBeNull();
-	expect(secondUse.error).not.toBeNull();
-
-	// Optional: si tu implementación marca el invite como "used"
-	const invite = await db.findOne({
-		model: "invite",
-		where: [{ field: "token", value: tokenValue }],
-	});
-
-	expect(invite).toEqual(
-		expect.objectContaining({
-			status: "used",
-		}),
-	);
+	expect(newError).toBeNull();
+	expect(path).toBe("http://localhost:3000/");
 });
 
 test("works with old email field in db", async ({ createAuth }) => {
@@ -1081,16 +748,19 @@ test("works with old email field in db", async ({ createAuth }) => {
 		name: "Test User",
 		password: "12345678",
 	};
-	const newRole = "admin";
 
+	// Create a new user
 	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
+	// This should be a role upgrade, because user already exists
 	const token = await client.invite.create({
 		email: invitedUser.email,
-		role: newRole,
-		fetchOptions: { headers },
+		role: "owner",
+		fetchOptions: {
+			headers,
+		},
 	});
 
 	expect(token.error).toBe(null);
@@ -1120,80 +790,88 @@ test("works with old email field in db", async ({ createAuth }) => {
 		invitedUser.password,
 	);
 
-	const { error, data } = await client.invite.activate({
+	// We accept the invite while being logged in as the invited user
+	const { newError, path } = await acceptInviteGet(client, {
 		token: tokenValue,
 		signInUpUrl: "/auth/sign-in",
-		fetchOptions: { headers: newHeaders },
-	});
-
-	expect(error).toBe(null);
-	expect(data).toStrictEqual({
-		status: true,
-		action: "REDIRECT_TO_AFTER_UPGRADE",
-		message: "Invite accepted successfully",
-		redirectTo: "http://localhost:3000/",
-	});
-});
-
-test("private invite includes email in default redirect URL", async ({
-	createAuth,
-}) => {
-	const { client, signInWithTestUser } = await createAuth({
-		pluginOptions: {
-			...defaultOptions,
-			sendUserInvitation: mock.sendUserInvitation,
+		fetchOptions: {
+			headers: newHeaders,
 		},
 	});
 
-	const email = "test@email.com";
-
-	const { headers } = await signInWithTestUser();
-
-	await client.invite.create({
-		role: "user",
-		email,
-		fetchOptions: { headers },
-	});
-
-	const call = mock.sendUserInvitation.mock.calls[0][0];
-	const url = call.url;
-
-	expect(url).toContain("/invite/");
-	expect(url).toContain("signInUpUrl=");
-	expect(url).toContain(`email=${encodeURIComponent(email)}`);
+	expect(newError).toBe(null);
+	expect(path).toBe("http://localhost:3000/");
 });
 
-test("private invite includes email in custom invite URL", async ({
+test("acceptInviteCallback uses custom cookie names", async ({
 	createAuth,
 }) => {
-	const customInviteUrl =
-		"/invite/{token}?redirect={signInUpUrl}&email={email}";
-
-	const { client, signInWithTestUser } = await createAuth({
+	const { client, signInWithTestUser, db } = await createAuth({
 		pluginOptions: {
 			...defaultOptions,
-			sendUserInvitation: mock.sendUserInvitation,
+		},
+		advancedOptions: {
+			cookies: {
+				invite_token: {
+					name: "invite_test",
+				},
+			},
 		},
 	});
 
-	const email = "test@email.com";
+	const invitedUser = {
+		email: "test@email.com",
+		role: "user",
+		name: "Test User",
+		password: "12345678",
+	};
+
+	// Create a new user
+	await createUser(invitedUser, db);
 
 	const { headers } = await signInWithTestUser();
 
-	await client.invite.create({
-		role: "user",
-		email,
-		customInviteUrl,
-		fetchOptions: { headers },
+	// This should be a role upgrade, because user already exists
+	const token = await client.invite.create({
+		role: "owner",
+		senderResponse: "token",
+		fetchOptions: {
+			headers,
+		},
 	});
 
-	const call = mock.sendUserInvitation.mock.calls[0][0];
-	const url = call.url;
+	expect(token.error).toBe(null);
+	const tokenValue = token.data?.message;
 
-	expect(url).toContain(`/invite/`);
-	expect(url).toContain(`email=${encodeURIComponent(email)}`);
+	if (!tokenValue) {
+		throw new Error("Token value is undefined");
+	}
 
-	expect(url).not.toContain("{email}");
-	expect(url).not.toContain("{token}");
-	expect(url).not.toContain("{signInUpUrl}");
+	const newHeaders = new Headers();
+
+	// We accept the invite while being logged in as the invited user
+	const { path: acceptPath } = await acceptInviteGet(client, {
+		token: tokenValue,
+		fetchOptions: {
+			async onResponse(context) {
+				setCookieToHeader(newHeaders)(context);
+			},
+		},
+	});
+
+	expect(acceptPath).toBe("http://localhost:3000/auth/sign-in");
+
+	const cookieHeader = newHeaders.get("cookie");
+	expect(cookieHeader).not.toBeNull();
+	expect(cookieHeader?.startsWith("invite_test=")).toBe(true);
+
+	const { path } = await resolveInviteRedirect(client.signIn.email, {
+		email: invitedUser.email,
+		password: invitedUser.password,
+		fetchOptions: {
+			headers: newHeaders,
+		},
+	});
+
+	expect(path).toBe("http://localhost:3000/");
 });

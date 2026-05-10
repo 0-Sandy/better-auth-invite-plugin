@@ -88,7 +88,7 @@ export const defaultOptions: InviteOptions = {
 	defaultMaxUses: 1,
 };
 
-export async function activateInviteGet(
+export async function acceptInviteGet(
 	// biome-ignore lint/suspicious/noExplicitAny: client doesn't have a specific type here
 	client: any,
 	{
@@ -127,8 +127,10 @@ export async function activateInviteGet(
 			params: {
 				token,
 			},
-			onResponse({ response }: ResponseContext) {
-				location = response.headers.get("location");
+			onResponse(ctx: ResponseContext) {
+				customFetchOptions?.onResponse?.(ctx);
+
+				location = ctx.response.headers.get("location");
 			},
 		},
 	});
