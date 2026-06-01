@@ -63,7 +63,7 @@
 		"better-sqlite3": "^12.6.0",
 		"tsdown": "^0.21.7",
 		"typescript": "catalog:",
-		"vitest": "^4.0.17"
+		"vitest": "^4.1.0"
 	},
 	"peerDependencies": {
 		"better-auth": "^1.6.2"
